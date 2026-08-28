@@ -1,0 +1,94 @@
+export const PRODUCT_IMAGE_PREFIX = "products/";
+
+export const MAX_PRODUCT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES = 10 * 1024 * 1024;
+export const PRODUCT_IMAGE_MAX_DIMENSION = 1600;
+export const PRODUCT_IMAGE_WEBP_QUALITY = 0.82;
+
+export const productImageMimeTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+] as const;
+
+const productImageKeyPattern =
+  /^products\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
+
+export type ProductImageMimeType =
+  (typeof productImageMimeTypes)[number];
+
+export function isProductImageMimeType(
+  value: string,
+): value is ProductImageMimeType {
+  return productImageMimeTypes.includes(
+    value as ProductImageMimeType,
+  );
+}
+
+export function getExtensionForProductImageMimeType(
+  fileType: ProductImageMimeType,
+) {
+  const extensions: Record<ProductImageMimeType, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/avif": "avif",
+  };
+
+  return extensions[fileType];
+}
+
+export function isValidProductImageKey(key: string) {
+  return productImageKeyPattern.test(key);
+}
+
+export function getR2PublicBaseUrl() {
+  return process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/$/, "") ?? "";
+}
+
+export function getR2PublicUrl(key: string) {
+  const baseUrl = getR2PublicBaseUrl();
+
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_R2_PUBLIC_URL is not configured");
+  }
+
+  return `${baseUrl}/${key}`;
+}
+
+export function getOwnedR2ObjectKeyFromUrl(value: string) {
+  const baseUrl = getR2PublicBaseUrl();
+
+  if (!baseUrl) return null;
+
+  try {
+    const url = new URL(value);
+    const base = new URL(baseUrl);
+
+    if (
+      url.origin !== base.origin ||
+      url.search ||
+      url.hash
+    ) {
+      return null;
+    }
+
+    const basePath = base.pathname.replace(/\/$/, "");
+    const pathname = decodeURIComponent(url.pathname);
+
+    const keyPath = basePath
+      ? pathname.replace(`${basePath}/`, "")
+      : pathname.slice(1);
+
+    return isValidProductImageKey(keyPath)
+      ? keyPath
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isOwnedR2PublicUrl(value: string) {
+  return getOwnedR2ObjectKeyFromUrl(value) !== null;
+}

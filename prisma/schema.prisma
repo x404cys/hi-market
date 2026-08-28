@@ -1,0 +1,462 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql" 
+}
+
+ 
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
+enum ProductUnit {
+  PIECE
+  KG
+  GRAM
+  LITER
+  ML
+  PACK
+  BOX
+  BOTTLE
+  CAN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  RETURN
+  DAMAGE
+  EXPIRED
+  ADJUSTMENT
+  CANCELLATION
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_DELIVERY
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FIXED_PRICE
+  BUY_X_GET_Y
+}
+
+enum PromotionScope {
+  ALL_PRODUCTS
+  PRODUCTS
+  CATEGORIES
+}
+
+// =====================================================
+// CATALOG
+// =====================================================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  icon        String?
+
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products           Product[]
+  promotionCategories PromotionCategory[]
+
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  isActive    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([isActive])
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  categoryId String
+  brandId    String?
+
+  name        String
+  slug        String @unique
+  description String?
+
+  sku     String? @unique
+  barcode String? @unique
+
+  price        Decimal  @db.Decimal(14, 2)
+  comparePrice Decimal? @db.Decimal(14, 2)
+  costPrice    Decimal? @db.Decimal(14, 2)
+
+  unit      ProductUnit
+  unitValue Decimal?    @db.Decimal(10, 3)
+
+  // Used for products sold by weight such as fruits, vegetables and meat.
+  isWeighted Boolean @default(false)
+
+  // Minimum quantity and allowed increment in cart.
+  // Examples: piece => 1 / 1, weighted => 0.250 / 0.250.
+  minOrderQty Decimal @default(1) @db.Decimal(10, 3)
+  orderStep   Decimal @default(1) @db.Decimal(10, 3)
+
+  // Fast current-stock snapshot. Always update it together with StockMovement in one DB transaction.
+  stock           Decimal @default(0) @db.Decimal(14, 3)
+  lowStockAt      Decimal @default(0) @db.Decimal(14, 3)
+  trackInventory  Boolean @default(true)
+  allowBackorder  Boolean @default(false)
+
+  image String?
+
+  status     ProductStatus @default(ACTIVE)
+  isFeatured Boolean       @default(false)
+  sortOrder  Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brand    Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
+  images             ProductImage[]
+  orderItems         OrderItem[]
+  stockMovements     StockMovement[]
+  promotionProducts  PromotionProduct[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([status])
+  @@index([isFeatured, status])
+  @@index([name])
+}
+
+model ProductImage {
+  id        String @id @default(uuid())
+  productId String
+
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+// =====================================================
+// INVENTORY
+// =====================================================
+
+model StockMovement {
+  id        String @id @default(uuid())
+  productId String
+  orderId   String?
+
+  type     StockMovementType
+  quantity Decimal          @db.Decimal(14, 3)
+
+  stockBefore Decimal @db.Decimal(14, 3)
+  stockAfter  Decimal @db.Decimal(14, 3)
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([orderId])
+  @@index([type, createdAt])
+}
+
+// =====================================================
+// DELIVERY
+// =====================================================
+
+model DeliveryZone {
+  id String @id @default(uuid())
+
+  name        String
+  governorate String?
+  city        String?
+
+  fee              Decimal @default(0) @db.Decimal(14, 2)
+  freeDeliveryFrom Decimal? @db.Decimal(14, 2)
+  minimumOrder     Decimal? @db.Decimal(14, 2)
+
+  estimatedMinutesMin Int?
+  estimatedMinutesMax Int?
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([isActive, sortOrder])
+  @@index([governorate, city])
+}
+
+// =====================================================
+// COUPONS
+// =====================================================
+
+model Coupon {
+  id   String @id @default(uuid())
+  code String @unique
+
+  type  CouponType
+  value Decimal? @db.Decimal(14, 2)
+
+  minimumOrderAmount Decimal? @db.Decimal(14, 2)
+  maximumDiscount    Decimal? @db.Decimal(14, 2)
+
+  usageLimit Int?
+  usedCount  Int @default(0)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+// =====================================================
+// AUTOMATIC PROMOTIONS
+// =====================================================
+
+model Promotion {
+  id   String @id @default(uuid())
+  name String
+
+  type  PromotionType
+  scope PromotionScope @default(ALL_PRODUCTS)
+
+  // Percentage or fixed amount depending on type.
+  value Decimal? @db.Decimal(14, 2)
+
+  // Used by FIXED_PRICE.
+  fixedPrice Decimal? @db.Decimal(14, 2)
+
+  // Used by BUY_X_GET_Y.
+  buyQuantity Decimal? @db.Decimal(10, 3)
+  getQuantity Decimal? @db.Decimal(10, 3)
+
+  minimumOrderAmount Decimal? @db.Decimal(14, 2)
+  maximumDiscount    Decimal? @db.Decimal(14, 2)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  priority Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products   PromotionProduct[]
+  categories PromotionCategory[]
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([priority])
+}
+
+model PromotionProduct {
+  promotionId String
+  productId   String
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, productId])
+  @@index([productId])
+}
+
+model PromotionCategory {
+  promotionId String
+  categoryId  String
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, categoryId])
+  @@index([categoryId])
+}
+
+// =====================================================
+// ORDERS - GUEST CHECKOUT
+// =====================================================
+
+model Order {
+  id          String @id @default(uuid())
+  orderNumber Int    @unique @default(autoincrement())
+
+  // Guest customer snapshot.
+  customerName      String
+  customerPhone     String
+  secondaryPhone    String?
+
+  // Delivery address snapshot.
+  governorate String?
+  city        String?
+  area        String?
+  street      String?
+  address     String
+  landmark    String?
+
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  customerNotes String?
+  adminNotes    String?
+
+  // Delivery zone is optional so old orders remain valid if zone configuration changes.
+  deliveryZoneId   String?
+  deliveryZoneName String?
+
+  subtotal      Decimal @db.Decimal(14, 2)
+  discountTotal Decimal @default(0) @db.Decimal(14, 2)
+  deliveryFee   Decimal @default(0) @db.Decimal(14, 2)
+  taxTotal      Decimal @default(0) @db.Decimal(14, 2)
+  total         Decimal @db.Decimal(14, 2)
+
+  couponId   String?
+  couponCode String?
+
+  status        OrderStatus    @default(PENDING)
+  paymentMethod PaymentMethod  @default(CASH_ON_DELIVERY)
+  paymentStatus PaymentStatus  @default(PENDING)
+
+  placedAt    DateTime @default(now())
+  confirmedAt DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliveryZone DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+  coupon       Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  items          OrderItem[]
+  statusHistory  OrderStatusHistory[]
+  stockMovements StockMovement[]
+
+  @@index([status, createdAt])
+  @@index([customerPhone, createdAt])
+  @@index([paymentStatus])
+  @@index([deliveryZoneId])
+  @@index([couponId])
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+
+  // Nullable reference keeps order history intact even if a product is deleted later.
+  productId String?
+
+  // Product snapshot at checkout time.
+  productName String
+  sku         String?
+  barcode     String?
+  image       String?
+
+  unit      ProductUnit
+  unitValue Decimal?    @db.Decimal(10, 3)
+
+  quantity  Decimal @db.Decimal(10, 3)
+  unitPrice Decimal @db.Decimal(14, 2)
+
+  discountAmount Decimal @default(0) @db.Decimal(14, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(14, 2)
+  total          Decimal @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id      String @id @default(uuid())
+  orderId String
+
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}

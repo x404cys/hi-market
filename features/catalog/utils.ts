@@ -1,0 +1,70 @@
+import { productUnitLabels } from "@/lib/products/product-format";
+import type { StoreProduct } from "@/features/catalog/types";
+
+export function getProductImages(product: StoreProduct) {
+  return [
+    ...(product.image ? [product.image] : []),
+    ...product.images
+      .map((image) => image.url)
+      .filter((url) => url && url !== product.image),
+  ];
+}
+
+export function getDiscountPercent(product: StoreProduct) {
+  if (!product.comparePrice) return null;
+
+  const price = Number(product.price);
+  const comparePrice = Number(product.comparePrice);
+
+  if (!Number.isFinite(price) || !Number.isFinite(comparePrice)) return null;
+  if (comparePrice <= price || comparePrice <= 0) return null;
+
+  return Math.round(((comparePrice - price) / comparePrice) * 100);
+}
+
+export function getUnitText(product: StoreProduct) {
+  const unitLabel = productUnitLabels[product.unit];
+
+  if (product.unitValue) {
+    return `${formatCompactNumber(product.unitValue)} ${unitLabel}`;
+  }
+
+  if (product.isWeighted) {
+    return unitLabel;
+  }
+
+  return unitLabel;
+}
+
+export function getQuantityStep(product: StoreProduct) {
+  const parsed = Number(product.orderStep || product.minOrderQty || "1");
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+export function getInitialQuantity(product: StoreProduct) {
+  const parsed = Number(product.minOrderQty || "1");
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+export function formatQuantityLabel(product: StoreProduct, quantity: number) {
+  const formattedQuantity = formatCompactNumber(quantity.toString());
+  const unitLabel = productUnitLabels[product.unit];
+
+  if (product.unit === "PIECE") {
+    return formattedQuantity;
+  }
+
+  return `${formattedQuantity} ${unitLabel}`;
+}
+
+function formatCompactNumber(value: string) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) return value;
+
+  return new Intl.NumberFormat("ar-IQ", {
+    maximumFractionDigits: 3,
+  }).format(numericValue);
+}

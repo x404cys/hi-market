@@ -47,8 +47,7 @@ const initialFormState: CheckoutFormState = {
   couponCode: "",
 };
 
-const configuredWhatsappPhone =
-  process.env.NEXT_PUBLIC_STORE_WHATSAPP_PHONE ?? "+9647763920232";
+const configuredWhatsappPhone = "+9647763920232";
 const storeWhatsappPhone = normalizeWhatsappPhone(configuredWhatsappPhone);
 const isDevelopment = process.env.NODE_ENV !== "production";
 

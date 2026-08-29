@@ -5,6 +5,7 @@ import {
   BarChart3,
   Boxes,
   ClipboardList,
+  GalleryHorizontal,
   Home,
   Layers3,
   Settings,
@@ -28,6 +29,11 @@ const navItems = [
     href: "/dashboard/products",
     label: "المنتجات",
     icon: Boxes,
+  },
+  {
+    href: "/dashboard/banners",
+    label: "البنرات",
+    icon: GalleryHorizontal,
   },
   {
     href: "/dashboard/products?stockStatus=low",
@@ -97,7 +103,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <nav className="flex items-center gap-1 lg:hidden">
-              {navItems.slice(0, 3).map((item) => {
+              {navItems.slice(0, 4).map((item) => {
                 const isActive = "exact" in item && item.exact
                   ? pathname === item.href
                   : pathname.startsWith(item.href);

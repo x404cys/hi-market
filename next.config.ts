@@ -8,6 +8,11 @@ function getR2ImageRemotePatterns(): NonNullable<NextConfig["images"]>["remotePa
       hostname: "**.r2.cloudflarestorage.com",
       pathname: "/products/**",
     },
+    {
+      protocol: "https",
+      hostname: "**.r2.cloudflarestorage.com",
+      pathname: "/banners/**",
+    },
   ];
 
   if (!publicUrl) return patterns;
@@ -16,11 +21,20 @@ function getR2ImageRemotePatterns(): NonNullable<NextConfig["images"]>["remotePa
     const url = new URL(publicUrl);
 
     if (url.hostname !== "**.r2.cloudflarestorage.com") {
-      patterns.unshift({
-        protocol: "https",
-        hostname: url.hostname,
-        pathname: `${url.pathname.replace(/\/$/, "")}/products/**`,
-      });
+      const basePath = url.pathname.replace(/\/$/, "");
+
+      patterns.unshift(
+        {
+          protocol: "https",
+          hostname: url.hostname,
+          pathname: `${basePath}/products/**`,
+        },
+        {
+          protocol: "https",
+          hostname: url.hostname,
+          pathname: `${basePath}/banners/**`,
+        },
+      );
     }
   } catch {
     return patterns;

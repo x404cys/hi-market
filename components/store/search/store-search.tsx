@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -186,134 +191,153 @@ export function StoreSearch({
   return (
     <div className="space-y-3">
       <form onSubmit={submitSearch} className="flex h-10 items-center gap-2">
-        <label className="relative h-full flex-1">
-          <span className="sr-only">ابحث عن المنتجات</span>
-          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--store-muted)]" />
-          <input
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder="ابحث عن منتجات، مشروبات، أطعمة..."
-            className="h-full w-full rounded-[10px] border border-[var(--store-border)] bg-white pr-10 pl-3 text-xs text-[var(--store-text)] outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
-          />
-        </label>
-        <Sheet
-          open={sheetOpen}
-          onOpenChange={(open) => {
-            setSheetOpen(open);
-            if (open) setDraftFilters(filters);
-          }}
-        >
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              className="flex size-10 items-center justify-center rounded-[10px] bg-[var(--store-primary)] text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200 md:hidden"
-              aria-label="فتح الفلاتر"
-            >
-              <SlidersHorizontal className="size-4" />
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" dir="rtl" className="bg-[var(--store-background)]">
-            <SheetHeader>
-              <SheetTitle>فلاتر المنتجات</SheetTitle>
-            </SheetHeader>
-            <div className="overflow-y-auto px-5 pb-2">
-              <FilterFields
-                categories={categories}
-                brands={brands}
-                filters={draftFilters}
-                onChange={setDraftFilters}
-              />
-            </div>
-            <SheetFooter className="grid grid-cols-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => clearFilters(false)}
-                className="h-11 rounded-[10px]"
-              >
-                مسح الفلاتر
-              </Button>
-              <Button
-                type="button"
-                onClick={applyDraftFilters}
-                className="h-11 rounded-[10px] bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
-              >
-                عرض النتائج
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
-      </form>
+  <label className="relative h-full flex-1">
+    <span className="sr-only">ابحث عن المنتجات</span>
 
-      <div className="hidden rounded-[14px] border border-[var(--store-border)] bg-white p-3 md:block">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-[1fr_1fr_0.7fr_0.7fr_auto_auto]">
-          <Select
-            value={filters.category || allValue}
-            onValueChange={(nextValue) => setFilterParam("category", nextValue)}
-          >
-            <SelectTrigger aria-label="التصنيف">
-              <SelectValue placeholder="جميع التصنيفات" />
-            </SelectTrigger>
-            <SelectContent dir="rtl">
-              <SelectItem value={allValue}>جميع التصنيفات</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.slug}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--store-muted)]" />
 
-          <Select
-            value={filters.brand || allValue}
-            onValueChange={(nextValue) => setFilterParam("brand", nextValue)}
-          >
-            <SelectTrigger aria-label="الماركة">
-              <SelectValue placeholder="جميع الماركات" />
-            </SelectTrigger>
-            <SelectContent dir="rtl">
-              <SelectItem value={allValue}>جميع الماركات</SelectItem>
-              {brands.map((brand) => (
-                <SelectItem key={brand.id} value={brand.slug}>
-                  {brand.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <input
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      placeholder="ابحث عن منتجات، مشروبات، أطعمة..."
+      className="h-full w-full rounded-[10px] border border-[var(--store-border)] bg-white pr-10 pl-3 text-xs text-[var(--store-text)] outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
+    />
+  </label>
 
-          <PriceInput
-            label="من"
-            value={draftFilters.minPrice}
-            onChange={(minPrice) =>
-              setDraftFilters((current) => ({ ...current, minPrice }))
-            }
-          />
-          <PriceInput
-            label="إلى"
-            value={draftFilters.maxPrice}
-            onChange={(maxPrice) =>
-              setDraftFilters((current) => ({ ...current, maxPrice }))
-            }
-          />
-          <label className="flex h-10 items-center gap-2 rounded-[10px] border border-[var(--store-border)] px-3 text-xs font-semibold text-[var(--store-text)]">
-            <Checkbox
-              checked={filters.inStock}
-              onCheckedChange={(checked) => setFilterParam("inStock", checked === true)}
-            />
-            متوفر فقط
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={applyDraftFilters}
-            disabled={isPending}
-            className="h-10 rounded-[10px]"
-          >
-            تطبيق
-          </Button>
-        </div>
+  {/* Mobile Filter */}
+  <Sheet
+    open={sheetOpen}
+    onOpenChange={(open) => {
+      setSheetOpen(open);
+
+      if (open) {
+        setDraftFilters(filters);
+      }
+    }}
+  >
+    <SheetTrigger asChild>
+      <button
+        type="button"
+        className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--store-primary)] text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200 md:hidden"
+        aria-label="فتح الفلاتر"
+      >
+        <SlidersHorizontal className="size-4" />
+      </button>
+    </SheetTrigger>
+
+    <SheetContent
+      side="bottom"
+      dir="rtl"
+      className="bg-[var(--store-background)]"
+    >
+      <SheetHeader>
+        <SheetTitle>فلاتر المنتجات</SheetTitle>
+      </SheetHeader>
+
+      <div className="overflow-y-auto px-5 pb-2">
+        <FilterFields
+          categories={categories}
+          brands={brands}
+          filters={draftFilters}
+          onChange={setDraftFilters}
+        />
       </div>
 
+      <SheetFooter className="grid grid-cols-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => clearFilters(false)}
+          className="h-11 rounded-[10px]"
+        >
+          مسح الفلاتر
+        </Button>
+
+        <Button
+          type="button"
+          onClick={applyDraftFilters}
+          className="h-11 rounded-[10px] bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
+        >
+          عرض النتائج
+        </Button>
+      </SheetFooter>
+    </SheetContent>
+  </Sheet>
+
+   <Popover
+    onOpenChange={(open) => {
+      if (open) {
+        setDraftFilters(filters);
+      }
+    }}
+  >
+    <PopoverTrigger asChild>
+      <Button
+        type="button"
+        className="hidden h-10 gap-2 rounded-[10px] bg-[var(--store-primary)] px-4 text-white hover:bg-[var(--store-primary-strong)] md:flex"
+      >
+        <SlidersHorizontal className="size-4" />
+
+        <span>فلترة</span>
+
+        {activeFilters.filter((filter) => filter.key !== "search").length > 0 && (
+          <span className="flex size-5 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--store-primary)]">
+            {
+              activeFilters.filter((filter) => filter.key !== "search")
+                .length
+            }
+          </span>
+        )}
+      </Button>
+    </PopoverTrigger>
+
+    <PopoverContent
+      align="end"
+      sideOffset={8}
+      dir="rtl"
+      className="w-[380px] rounded-[16px] border-[var(--store-border)] p-0"
+    >
+      <div className="border-b border-[var(--store-border)] px-5 py-4">
+        <h3 className="text-sm font-bold text-[var(--store-text)]">
+          فلترة المنتجات
+        </h3>
+
+        <p className="mt-1 text-xs text-[var(--store-muted)]">
+          اختر الخيارات المناسبة لعرض المنتجات
+        </p>
+      </div>
+
+      <div className="max-h-[60vh] overflow-y-auto px-5">
+        <FilterFields
+          categories={categories}
+          brands={brands}
+          filters={draftFilters}
+          onChange={setDraftFilters}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-[var(--store-border)] p-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => clearFilters(false)}
+          className="h-10 rounded-[10px]"
+        >
+          مسح
+        </Button>
+
+        <Button
+          type="button"
+          disabled={isPending}
+          onClick={applyDraftFilters}
+          className="h-10 rounded-[10px] bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
+        >
+          عرض النتائج
+        </Button>
+      </div>
+    </PopoverContent>
+  </Popover>
+</form>
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {activeFilters.map((filter) => (

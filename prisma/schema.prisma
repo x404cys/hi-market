@@ -4,10 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
 }
 
- 
 enum ProductStatus {
   DRAFT
   ACTIVE
@@ -80,14 +79,52 @@ enum PromotionScope {
   CATEGORIES
 }
 
+enum BannerPosition {
+  HERO
+  HOME_MIDDLE
+  HOME_BOTTOM
+}
+
+// =====================================================
+// HOMEPAGE BANNERS
+// =====================================================
+
+model Banner {
+  id String @id @default(uuid())
+
+  title       String?
+  description String?
+
+  image       String
+  mobileImage String?
+
+  buttonText String?
+  link       String?
+
+  position BannerPosition @default(HERO)
+
+  isActive Boolean @default(true)
+
+  sortOrder Int @default(0)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([position, isActive, sortOrder])
+  @@index([startsAt, endsAt])
+}
+
 // =====================================================
 // CATALOG
 // =====================================================
 
 model Category {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
-  slug        String   @unique
+  slug        String  @unique
   description String?
   image       String?
   icon        String?
@@ -102,7 +139,7 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  products           Product[]
+  products            Product[]
   promotionCategories PromotionCategory[]
 
   @@index([parentId])
@@ -110,12 +147,12 @@ model Category {
 }
 
 model Brand {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
-  slug        String   @unique
+  slug        String  @unique
   description String?
   logo        String?
-  isActive    Boolean  @default(true)
+  isActive    Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,7 +169,7 @@ model Product {
   brandId    String?
 
   name        String
-  slug        String @unique
+  slug        String  @unique
   description String?
 
   sku     String? @unique
@@ -154,10 +191,10 @@ model Product {
   orderStep   Decimal @default(1) @db.Decimal(10, 3)
 
   // Fast current-stock snapshot. Always update it together with StockMovement in one DB transaction.
-  stock           Decimal @default(0) @db.Decimal(14, 3)
-  lowStockAt      Decimal @default(0) @db.Decimal(14, 3)
-  trackInventory  Boolean @default(true)
-  allowBackorder  Boolean @default(false)
+  stock          Decimal @default(0) @db.Decimal(14, 3)
+  lowStockAt     Decimal @default(0) @db.Decimal(14, 3)
+  trackInventory Boolean @default(true)
+  allowBackorder Boolean @default(false)
 
   image String?
 
@@ -171,10 +208,10 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   brand    Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
 
-  images             ProductImage[]
-  orderItems         OrderItem[]
-  stockMovements     StockMovement[]
-  promotionProducts  PromotionProduct[]
+  images            ProductImage[]
+  orderItems        OrderItem[]
+  stockMovements    StockMovement[]
+  promotionProducts PromotionProduct[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -203,12 +240,12 @@ model ProductImage {
 // =====================================================
 
 model StockMovement {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   productId String
   orderId   String?
 
   type     StockMovementType
-  quantity Decimal          @db.Decimal(14, 3)
+  quantity Decimal           @db.Decimal(14, 3)
 
   stockBefore Decimal @db.Decimal(14, 3)
   stockAfter  Decimal @db.Decimal(14, 3)
@@ -236,7 +273,7 @@ model DeliveryZone {
   governorate String?
   city        String?
 
-  fee              Decimal @default(0) @db.Decimal(14, 2)
+  fee              Decimal  @default(0) @db.Decimal(14, 2)
   freeDeliveryFrom Decimal? @db.Decimal(14, 2)
   minimumOrder     Decimal? @db.Decimal(14, 2)
 
@@ -264,13 +301,13 @@ model Coupon {
   code String @unique
 
   type  CouponType
-  value Decimal? @db.Decimal(14, 2)
+  value Decimal?   @db.Decimal(14, 2)
 
   minimumOrderAmount Decimal? @db.Decimal(14, 2)
   maximumDiscount    Decimal? @db.Decimal(14, 2)
 
   usageLimit Int?
-  usedCount  Int @default(0)
+  usedCount  Int  @default(0)
 
   startsAt DateTime?
   endsAt   DateTime?
@@ -356,9 +393,9 @@ model Order {
   orderNumber Int    @unique @default(autoincrement())
 
   // Guest customer snapshot.
-  customerName      String
-  customerPhone     String
-  secondaryPhone    String?
+  customerName   String
+  customerPhone  String
+  secondaryPhone String?
 
   // Delivery address snapshot.
   governorate String?
@@ -387,11 +424,11 @@ model Order {
   couponId   String?
   couponCode String?
 
-  status        OrderStatus    @default(PENDING)
-  paymentMethod PaymentMethod  @default(CASH_ON_DELIVERY)
-  paymentStatus PaymentStatus  @default(PENDING)
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus PaymentStatus @default(PENDING)
 
-  placedAt    DateTime @default(now())
+  placedAt    DateTime  @default(now())
   confirmedAt DateTime?
   deliveredAt DateTime?
   cancelledAt DateTime?

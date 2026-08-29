@@ -1,9 +1,15 @@
 export const PRODUCT_IMAGE_PREFIX = "products/";
+export const BANNER_IMAGE_PREFIX = "banners/";
 
 export const MAX_PRODUCT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES = 10 * 1024 * 1024;
 export const PRODUCT_IMAGE_MAX_DIMENSION = 1600;
 export const PRODUCT_IMAGE_WEBP_QUALITY = 0.82;
+export const MAX_BANNER_IMAGE_SIZE_BYTES = MAX_PRODUCT_IMAGE_SIZE_BYTES;
+export const MAX_BANNER_IMAGE_ORIGINAL_SIZE_BYTES =
+  MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES;
+export const BANNER_IMAGE_MAX_DIMENSION = 1920;
+export const BANNER_IMAGE_WEBP_QUALITY = 0.82;
 
 export const productImageMimeTypes = [
   "image/jpeg",
@@ -14,6 +20,8 @@ export const productImageMimeTypes = [
 
 const productImageKeyPattern =
   /^products\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
+const bannerImageKeyPattern =
+  /^banners\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
 
 export type ProductImageMimeType =
   (typeof productImageMimeTypes)[number];
@@ -43,6 +51,10 @@ export function isValidProductImageKey(key: string) {
   return productImageKeyPattern.test(key);
 }
 
+export function isValidBannerImageKey(key: string) {
+  return bannerImageKeyPattern.test(key);
+}
+
 export function getR2PublicBaseUrl() {
   return process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/$/, "") ?? "";
 }
@@ -58,6 +70,10 @@ export function getR2PublicUrl(key: string) {
 }
 
 export function getOwnedR2ObjectKeyFromUrl(value: string) {
+  return getOwnedProductImageKeyFromUrl(value);
+}
+
+export function getOwnedProductImageKeyFromUrl(value: string) {
   const baseUrl = getR2PublicBaseUrl();
 
   if (!baseUrl) return null;
@@ -89,6 +105,36 @@ export function getOwnedR2ObjectKeyFromUrl(value: string) {
   }
 }
 
+export function getOwnedBannerImageKeyFromUrl(value: string) {
+  const baseUrl = getR2PublicBaseUrl();
+
+  if (!baseUrl) return null;
+
+  try {
+    const url = new URL(value);
+    const base = new URL(baseUrl);
+
+    if (url.origin !== base.origin || url.search || url.hash) {
+      return null;
+    }
+
+    const basePath = base.pathname.replace(/\/$/, "");
+    const pathname = decodeURIComponent(url.pathname);
+
+    const keyPath = basePath
+      ? pathname.replace(`${basePath}/`, "")
+      : pathname.slice(1);
+
+    return isValidBannerImageKey(keyPath) ? keyPath : null;
+  } catch {
+    return null;
+  }
+}
+
 export function isOwnedR2PublicUrl(value: string) {
   return getOwnedR2ObjectKeyFromUrl(value) !== null;
+}
+
+export function isOwnedBannerR2PublicUrl(value: string) {
+  return getOwnedBannerImageKeyFromUrl(value) !== null;
 }

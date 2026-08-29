@@ -14,6 +14,7 @@ import {
   listBrandOptions,
   listCategoryOptions,
 } from "@/lib/services/catalog-options.service";
+import { getActiveHeroBanner } from "@/lib/services/banner.service";
 import { listStoreProducts } from "@/lib/services/product.service";
 
 type HomePageProps = {
@@ -32,7 +33,8 @@ export default async function Page({ searchParams }: HomePageProps) {
 
   const params = await searchParams;
   const filters = normalizeStorefrontFilters(params);
-  const [categoriesResult, brandsResult, productsResult] = await Promise.allSettled([
+  const [categoriesResult, brandsResult, productsResult, bannerResult] =
+    await Promise.allSettled([
     listCategoryOptions(),
     listBrandOptions(),
     listStoreProducts({
@@ -44,12 +46,14 @@ export default async function Page({ searchParams }: HomePageProps) {
       maxPrice: filters.maxPrice,
       inStock: filters.inStock,
     }),
+    getActiveHeroBanner(),
   ]);
   const categories: StoreCategory[] =
     categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
   const brands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
   const products: StoreProduct[] =
     productsResult.status === "fulfilled" ? productsResult.value : [];
+  const heroBanner = bannerResult.status === "fulfilled" ? bannerResult.value : null;
   const hasCatalogError =
     categoriesResult.status === "rejected" || productsResult.status === "rejected";
 
@@ -60,7 +64,7 @@ export default async function Page({ searchParams }: HomePageProps) {
     >
       <div className="mx-auto max-w-md space-y-7 md:max-w-5xl">
         <StoreHeader filters={filters} categories={categories} brands={brands} />
-        <HomeHeroBanner />
+        <HomeHeroBanner banner={heroBanner} />
         {hasCatalogError && (
           <EmptyState
             title="تعذر تحميل بعض بيانات المتجر"

@@ -1,16 +1,15 @@
 "use client";
 
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { CartLineItems } from "@/components/store/cart/cart-line-items";
 import { BottomNavigation } from "@/components/store/layout/bottom-navigation";
-import { StoreProductImage } from "@/components/store/shared/product-image";
 import {
   clearCart,
-  setCartItemQuantity,
   useCartState,
   useCartSummary,
 } from "@/features/cart/store";
-import { formatIqd, productUnitLabels } from "@/lib/products/product-format";
+import { formatIqd } from "@/lib/products/product-format";
 
 export function CartPageClient() {
   const cart = useCartState();
@@ -21,14 +20,17 @@ export function CartPageClient() {
       dir="rtl"
       className="min-h-screen bg-[var(--store-background)] px-5 pb-28 pt-5 text-[var(--store-text)]"
     >
-      <div className="mx-auto max-w-md md:max-w-3xl">
-        <header className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">السلة</h1>
+      <div className="mx-auto max-w-md md:max-w-5xl">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs text-[var(--store-text-muted)]">راجع المنتجات قبل الطلب</p>
+            <h1 className="mt-1 text-xl font-semibold">السلة</h1>
+          </div>
           {cart.items.length > 0 && (
             <button
               type="button"
               onClick={clearCart}
-              className="text-xs font-semibold text-red-500"
+              className="h-10 rounded-lg px-3 text-xs font-semibold text-red-500 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-red-100"
             >
               تفريغ السلة
             </button>
@@ -36,112 +38,40 @@ export function CartPageClient() {
         </header>
 
         {cart.items.length === 0 ? (
-          <section className="mt-8 rounded-[18px] border border-[var(--store-border)] bg-white px-5 py-10 text-center">
-            <p className="text-sm font-bold">السلة فارغة</p>
-            <p className="mt-1 text-xs text-[var(--store-text-muted)]">
-              أضف المنتجات من الصفحة الرئيسية أو صفحة المنتج.
+          <section className="mt-8 rounded-xl border border-[var(--store-border)] bg-white px-5 py-10 text-center">
+            <ShoppingBag className="mx-auto size-9 text-[var(--store-muted)]" />
+            <p className="mt-3 text-sm font-semibold">السلة فارغة</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-[var(--store-text-muted)]">
+              أضف بعض المنتجات لتبدأ طلبك.
             </p>
             <Link
               href="/"
-              className="mt-5 inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--store-primary)] px-4 text-sm font-bold text-white"
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[var(--store-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
             >
-              العودة للتسوق
+              تصفح المنتجات
             </Link>
           </section>
         ) : (
-          <>
-            <div className="mt-5 space-y-3">
-              {cart.items.map((item) => (
-                <article
-                  key={item.productId}
-                  className="flex gap-3 rounded-[16px] border border-[var(--store-border)] bg-white p-3"
-                >
-                  <Link
-                    href={`/products/${item.slug}`}
-                    className="relative size-20 shrink-0 overflow-hidden rounded-[14px] bg-[var(--store-primary-soft)]"
-                  >
-                    <StoreProductImage
-                      src={item.image}
-                      alt={item.name}
-                      sizes="80px"
-                    />
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/products/${item.slug}`}
-                      className="block truncate text-sm font-bold"
-                    >
-                      {item.name}
-                    </Link>
-                    <p className="mt-1 text-xs text-[var(--store-text-muted)]">
-                      {item.unitValue
-                        ? `${item.unitValue} ${productUnitLabels[item.unit]}`
-                        : productUnitLabels[item.unit]}
-                    </p>
-                    <p className="mt-2 text-sm font-bold">{formatIqd(item.price)}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setCartItemQuantity(item.productId, 0)}
-                      className="text-[var(--store-muted)]"
-                      aria-label="حذف المنتج من السلة"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCartItemQuantity(
-                            item.productId,
-                            item.quantity - Number(item.orderStep || item.minOrderQty || 1),
-                          )
-                        }
-                        className="flex size-7 items-center justify-center rounded-[8px] bg-slate-100"
-                        aria-label="تقليل الكمية"
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <span className="min-w-6 text-center text-sm font-bold">
-                        {item.quantity.toLocaleString("ar-IQ")}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCartItemQuantity(
-                            item.productId,
-                            item.quantity + Number(item.orderStep || item.minOrderQty || 1),
-                          )
-                        }
-                        className="flex size-7 items-center justify-center rounded-[8px] bg-[var(--store-primary)] text-white"
-                        aria-label="زيادة الكمية"
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <CartLineItems items={cart.items} />
 
-            <div className="mt-5 rounded-[16px] border border-[var(--store-border)] bg-white px-4 py-3">
-              <div className="mx-auto flex max-w-md items-center gap-4 md:max-w-3xl">
-                <div className="min-w-[96px]">
-                  <p className="text-[11px] text-[var(--store-text-muted)]">
-                    الإجمالي
-                  </p>
-                  <p className="mt-0.5 text-sm font-bold">{formatIqd(total)}</p>
-                </div>
-                <Link
-                  href="/checkout"
-                  className="flex h-12 flex-1 items-center justify-center rounded-[12px] bg-[var(--store-primary)] text-sm font-bold text-white"
-                >
-                  متابعة إتمام الطلب
-                </Link>
+            <aside className="rounded-xl border border-[var(--store-border)] bg-white p-4 lg:sticky lg:top-5 lg:self-start">
+              <p className="text-sm font-semibold">ملخص السلة</p>
+              <div className="mt-4 flex items-center justify-between border-t border-[var(--store-border)] pt-4">
+                <span className="text-sm text-[var(--store-text-muted)]">المجموع</span>
+                <strong className="text-lg font-semibold">{formatIqd(total)}</strong>
               </div>
-            </div>
-          </>
+              <p className="mt-2 text-xs leading-5 text-[var(--store-text-muted)]">
+                رسوم التوصيل والخصومات يتم احتسابها عند إتمام الطلب.
+              </p>
+              <Link
+                href="/checkout"
+                className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-[var(--store-primary)] text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
+              >
+                إتمام الطلب
+              </Link>
+            </aside>
+          </div>
         )}
       </div>
       <BottomNavigation />

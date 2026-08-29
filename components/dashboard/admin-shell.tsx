@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import {
-  BarChart3,
   Boxes,
   ClipboardList,
   GalleryHorizontal,
@@ -35,11 +34,7 @@ const navItems = [
     label: "البنرات",
     icon: GalleryHorizontal,
   },
-  {
-    href: "/dashboard/products?stockStatus=low",
-    label: "المخزون",
-    icon: BarChart3,
-  },
+   
 ] as const;
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -55,8 +50,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-bold">إدارة المتجر</p>
-              <p className="text-xs text-slate-500">عمليات السوبرماركت</p>
-            </div>
+             </div>
           </div>
 
           <nav className="flex-1 space-y-1 px-3 py-4">
@@ -96,12 +90,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="lg:pr-64">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:px-6">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-slate-500">لوحة إدارة السوبرماركت</p>
-              <p className="truncate text-sm font-semibold text-slate-950">
-                متابعة الطلبات والمخزون
-              </p>
-            </div>
+          
             <nav className="flex items-center gap-1 lg:hidden">
               {navItems.slice(0, 4).map((item) => {
                 const isActive = "exact" in item && item.exact

@@ -10,7 +10,7 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-[17px] font-bold text-[var(--store-text)]">{title}</h2>
+      <h2 className="text-[17px] font-semibold text-[var(--store-text)]">{title}</h2>
       {href && (
         <Link
           href={href}

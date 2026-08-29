@@ -1,4 +1,4 @@
-import { ProductCard } from "@/components/store/product/product-card";
+import { ProductGrid } from "@/components/store/product/product-grid";
 import { EmptyState } from "@/components/store/shared/empty-state";
 import { SectionHeader } from "@/components/store/shared/section-header";
 import type { StoreProduct } from "@/features/catalog/types";
@@ -27,7 +27,7 @@ export function BestDealsSection({
             <div className="text-center">
               <Link
                 href={clearFiltersHref}
-                className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--store-primary)] px-4 text-sm font-bold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--store-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
               >
                 مسح الفلاتر
               </Link>
@@ -35,11 +35,7 @@ export function BestDealsSection({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <ProductGrid products={products} />
       )}
     </section>
   );

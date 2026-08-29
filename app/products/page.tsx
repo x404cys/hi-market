@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { BottomNavigation } from "@/components/store/layout/bottom-navigation";
 import { StoreHeader } from "@/components/store/layout/store-header";
-import { ProductCard } from "@/components/store/product/product-card";
+import { ProductGrid } from "@/components/store/product/product-grid";
 import { EmptyState } from "@/components/store/shared/empty-state";
 import {
   hasStorefrontFilters,
@@ -54,9 +54,16 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       dir="rtl"
       className="min-h-screen bg-[var(--store-background)] px-5 pb-24 pt-5 text-[var(--store-text)]"
     >
-      <div className="mx-auto max-w-md space-y-5 md:max-w-5xl">
-        <StoreHeader filters={filters} categories={categories} brands={brands} />
-        <h1 className="text-xl font-bold">كل المنتجات</h1>
+      <div className="mx-auto max-w-md space-y-5 md:max-w-6xl xl:max-w-7xl">
+        <StoreHeader
+          filters={filters}
+          categories={categories}
+          brands={brands}
+          resultCount={products.length}
+        />
+        <h1 className="text-xl font-semibold">
+          {filters.search ? `نتائج البحث عن "${filters.search}"` : "كل المنتجات"}
+        </h1>
         {hasError ? (
           <EmptyState
             title="تعذر تحميل المنتجات"
@@ -72,7 +79,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <div className="text-center">
                 <Link
                   href="/products"
-                  className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--store-primary)] px-4 text-sm font-bold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
+                  className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--store-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
                 >
                   مسح الفلاتر
                 </Link>
@@ -80,11 +87,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <ProductGrid products={products} />
         )}
       </div>
       <BottomNavigation />

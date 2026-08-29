@@ -39,10 +39,12 @@ export function StoreSearch({
   filters,
   categories,
   brands,
+  resultCount,
 }: {
   filters: StorefrontFilters;
   categories: StoreCategory[];
   brands: StoreBrand[];
+  resultCount?: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -190,19 +192,30 @@ export function StoreSearch({
 
   return (
     <div className="space-y-3">
-      <form onSubmit={submitSearch} className="flex h-10 items-center gap-2">
-  <label className="relative h-full flex-1">
-    <span className="sr-only">ابحث عن المنتجات</span>
-
-    <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--store-muted)]" />
-
-    <input
-      value={value}
-      onChange={(event) => setValue(event.target.value)}
-      placeholder="ابحث عن منتجات، مشروبات، أطعمة..."
-      className="h-full w-full rounded-[10px] border border-[var(--store-border)] bg-white pr-10 pl-3 text-xs text-[var(--store-text)] outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
-    />
-  </label>
+      <form onSubmit={submitSearch} className="flex h-11 items-center gap-2">
+        <label className="relative h-full flex-1">
+          <span className="sr-only">ابحث عن المنتجات</span>
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--store-muted)]" />
+          <input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="ابحث عن المنتجات..."
+            className="h-full w-full rounded-lg border border-[var(--store-border)] bg-white pr-10 pl-10 text-sm text-[var(--store-text)] outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
+          />
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                setValue("");
+                removeFilter("search");
+              }}
+              className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[var(--store-muted)] transition hover:bg-slate-50 hover:text-[var(--store-text)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-100"
+              aria-label="مسح البحث"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </label>
 
   {/* Mobile Filter */}
   <Sheet
@@ -218,7 +231,7 @@ export function StoreSearch({
     <SheetTrigger asChild>
       <button
         type="button"
-        className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--store-primary)] text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200 md:hidden"
+        className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--store-primary)] text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200 md:hidden"
         aria-label="فتح الفلاتر"
       >
         <SlidersHorizontal className="size-4" />
@@ -228,13 +241,14 @@ export function StoreSearch({
     <SheetContent
       side="bottom"
       dir="rtl"
-      className="bg-[var(--store-background)]"
+      className="max-h-[88svh] gap-0 rounded-t-xl border-[var(--store-border)] bg-[var(--store-background)] p-0"
     >
-      <SheetHeader>
-        <SheetTitle>فلاتر المنتجات</SheetTitle>
+      <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-300" />
+      <SheetHeader className="border-b border-[var(--store-border)] bg-white pb-4">
+        <SheetTitle className="text-base font-semibold">فلاتر المنتجات</SheetTitle>
       </SheetHeader>
 
-      <div className="overflow-y-auto px-5 pb-2">
+      <div className="overflow-y-auto px-5 py-4">
         <FilterFields
           categories={categories}
           brands={brands}
@@ -243,12 +257,12 @@ export function StoreSearch({
         />
       </div>
 
-      <SheetFooter className="grid grid-cols-2">
+      <SheetFooter className="grid grid-cols-2 border-t border-[var(--store-border)] bg-white">
         <Button
           type="button"
           variant="outline"
           onClick={() => clearFilters(false)}
-          className="h-11 rounded-[10px]"
+          className="h-11 rounded-lg"
         >
           مسح الفلاتر
         </Button>
@@ -256,9 +270,11 @@ export function StoreSearch({
         <Button
           type="button"
           onClick={applyDraftFilters}
-          className="h-11 rounded-[10px] bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
+          className="h-11 rounded-lg bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
         >
-          عرض النتائج
+          {typeof resultCount === "number"
+            ? `عرض ${resultCount.toLocaleString("ar-IQ")} منتج`
+            : "عرض النتائج"}
         </Button>
       </SheetFooter>
     </SheetContent>
@@ -274,14 +290,14 @@ export function StoreSearch({
     <PopoverTrigger asChild>
       <Button
         type="button"
-        className="hidden h-10 gap-2 rounded-[10px] bg-[var(--store-primary)] px-4 text-white hover:bg-[var(--store-primary-strong)] md:flex"
+        className="hidden h-11 gap-2 rounded-lg bg-[var(--store-primary)] px-4 text-white hover:bg-[var(--store-primary-strong)] md:flex"
       >
         <SlidersHorizontal className="size-4" />
 
         <span>فلترة</span>
 
         {activeFilters.filter((filter) => filter.key !== "search").length > 0 && (
-          <span className="flex size-5 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--store-primary)]">
+          <span className="flex size-5 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[var(--store-primary)]">
             {
               activeFilters.filter((filter) => filter.key !== "search")
                 .length
@@ -295,10 +311,10 @@ export function StoreSearch({
       align="end"
       sideOffset={8}
       dir="rtl"
-      className="w-[380px] rounded-[16px] border-[var(--store-border)] p-0"
+      className="w-[380px] rounded-lg border-[var(--store-border)] p-0 shadow-none"
     >
       <div className="border-b border-[var(--store-border)] px-5 py-4">
-        <h3 className="text-sm font-bold text-[var(--store-text)]">
+        <h3 className="text-sm font-semibold text-[var(--store-text)]">
           فلترة المنتجات
         </h3>
 
@@ -321,7 +337,7 @@ export function StoreSearch({
           type="button"
           variant="outline"
           onClick={() => clearFilters(false)}
-          className="h-10 rounded-[10px]"
+          className="h-10 rounded-lg"
         >
           مسح
         </Button>
@@ -330,21 +346,23 @@ export function StoreSearch({
           type="button"
           disabled={isPending}
           onClick={applyDraftFilters}
-          className="h-10 rounded-[10px] bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
+          className="h-10 rounded-lg bg-[var(--store-primary)] text-white hover:bg-[var(--store-primary-strong)]"
         >
-          عرض النتائج
+          {typeof resultCount === "number"
+            ? `عرض ${resultCount.toLocaleString("ar-IQ")} منتج`
+            : "عرض النتائج"}
         </Button>
       </div>
     </PopoverContent>
   </Popover>
 </form>
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
           {activeFilters.map((filter) => (
             <Badge
               key={filter.key}
               variant="outline"
-              className="h-7 gap-1 rounded-full border-[var(--store-border)] bg-white px-2 text-[11px]"
+              className="h-8 shrink-0 gap-1 rounded-lg border-[var(--store-border)] bg-white px-2 text-[11px] font-medium"
             >
               {filter.label}
               <button
@@ -384,7 +402,7 @@ function FilterFields({
   onChange: React.Dispatch<React.SetStateAction<StorefrontFilters>>;
 }) {
   return (
-    <div className="space-y-5 py-2">
+    <div className="space-y-5">
       <FilterSection title="التصنيف">
         <Select
           value={filters.category || allValue}
@@ -407,6 +425,11 @@ function FilterFields({
             ))}
           </SelectContent>
         </Select>
+        {categories.length === 0 && (
+          <p className="text-xs text-[var(--store-text-muted)]">
+            لا توجد تصنيفات متاحة حالياً.
+          </p>
+        )}
       </FilterSection>
 
       <Separator />
@@ -433,6 +456,11 @@ function FilterFields({
             ))}
           </SelectContent>
         </Select>
+        {brands.length === 0 && (
+          <p className="text-xs text-[var(--store-text-muted)]">
+            لا توجد ماركات متاحة حالياً.
+          </p>
+        )}
       </FilterSection>
 
       <Separator />
@@ -458,7 +486,7 @@ function FilterFields({
 
       <Separator />
 
-      <label className="flex items-center gap-2 rounded-[12px] border border-[var(--store-border)] bg-white px-3 py-3 text-sm font-semibold">
+      <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[var(--store-border)] bg-white px-3 py-3 text-sm font-medium">
         <Checkbox
           checked={filters.inStock}
           onCheckedChange={(checked) =>
@@ -480,7 +508,7 @@ function FilterSection({
 }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-bold text-[var(--store-text)]">{title}</h2>
+      <h2 className="text-sm font-semibold text-[var(--store-text)]">{title}</h2>
       {children}
     </section>
   );
@@ -504,7 +532,7 @@ function PriceInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         inputMode="decimal"
-        className="h-10 w-full rounded-[10px] border border-[var(--store-border)] bg-white pr-9 pl-3 text-sm outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
+        className="h-11 w-full rounded-lg border border-[var(--store-border)] bg-white pr-9 pl-3 text-sm outline-none transition placeholder:text-[var(--store-muted)] focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100"
       />
     </label>
   );

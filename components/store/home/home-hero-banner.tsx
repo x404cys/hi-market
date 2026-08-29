@@ -25,29 +25,29 @@ export function HomeHeroBanner({
   const image = resolvedBanner.image;
 
   return (
-    <section className="rounded-[14px] bg-[var(--store-primary-soft)] px-4 py-4">
-      <div className="grid min-h-[108px] grid-cols-[1fr_112px] items-center gap-2 overflow-hidden">
+    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] px-4 py-4">
+      <div className="grid min-h-[104px] grid-cols-[1fr_108px] items-center gap-3 md:grid-cols-[1fr_180px]">
         <div className="min-w-0">
           {title && (
-            <h1 className="text-[18px] font-bold leading-6 text-[var(--store-primary-strong)]">
+            <h1 className="text-lg font-semibold leading-6 text-[var(--store-primary-strong)] md:text-xl">
               {title}
             </h1>
           )}
           {description && (
-            <p className="mt-1 max-w-[170px] text-[11px] leading-4 text-[var(--store-text-muted)]">
+            <p className="mt-1 max-w-[260px] text-xs leading-5 text-[var(--store-text-muted)]">
               {description}
             </p>
           )}
           {buttonText && link && (
             <Link
               href={link}
-              className="mt-3 inline-flex h-8 items-center justify-center rounded-[8px] bg-[var(--store-primary)] px-3 text-xs font-bold text-white shadow-[0_8px_18px_rgba(16,185,129,0.18)]"
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-[var(--store-primary)] px-4 text-xs font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
             >
               {buttonText}
             </Link>
           )}
         </div>
-        <div className="relative h-[104px]">
+        <div className="relative h-[104px] md:h-[140px]">
           {mobileImage && mobileImage !== image ? (
             <>
               <Image
@@ -56,15 +56,15 @@ export function HomeHeroBanner({
                 fill
                 sizes="112px"
                 priority
-                className="object-contain drop-shadow-[0_14px_18px_rgba(15,23,42,0.12)] md:hidden"
+                className="object-contain md:hidden"
               />
               <Image
                 src={image}
                 alt={title || "بنر إعلاني"}
                 fill
-                sizes="112px"
+                sizes="180px"
                 priority
-                className="hidden object-contain drop-shadow-[0_14px_18px_rgba(15,23,42,0.12)] md:block"
+                className="hidden object-contain md:block"
               />
             </>
           ) : (
@@ -72,18 +72,12 @@ export function HomeHeroBanner({
               src={image}
               alt={title || "بنر إعلاني"}
               fill
-              sizes="112px"
+              sizes="(min-width: 768px) 180px, 108px"
               priority
-              className="object-contain drop-shadow-[0_14px_18px_rgba(15,23,42,0.12)]"
+              className="object-contain"
             />
           )}
         </div>
-      </div>
-      <div className="mt-3 flex justify-center gap-1.5" aria-label="مؤشرات العروض">
-        <span className="size-1.5 rounded-full bg-emerald-200" />
-        <span className="size-1.5 rounded-full bg-emerald-200" />
-        <span className="h-1.5 w-4 rounded-full bg-[var(--store-primary)]" />
-        <span className="size-1.5 rounded-full bg-emerald-200" />
       </div>
     </section>
   );

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BottomNavigation } from "@/components/store/layout/bottom-navigation";
 import { StoreProductImage } from "@/components/store/shared/product-image";
 import { clearCart, useCartState, useCartSummary } from "@/features/cart/store";
+import type { CartItem } from "@/features/cart/types";
 import type { DeliveryZoneDto } from "@/lib/delivery/delivery-types";
 import type { OrderDto } from "@/lib/orders/order-types";
 import type { ApiErrorResponse, ApiSuccess } from "@/lib/products/product-types";
@@ -47,7 +48,7 @@ const initialFormState: CheckoutFormState = {
   couponCode: "",
 };
 
-const configuredWhatsappPhone = "+9647763920232";
+const configuredWhatsappPhone = process.env.NEXT_PUBLIC_STORE_WHATSAPP_PHONE;
 const storeWhatsappPhone = normalizeWhatsappPhone(configuredWhatsappPhone);
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -73,6 +74,16 @@ export function CheckoutPageClient() {
   useEffect(() => {
     void loadDeliveryZones();
   }, []);
+
+  useEffect(() => {
+    if (!submitError && Object.keys(fieldErrors).length === 0) return;
+
+    window.setTimeout(() => {
+      document
+        .querySelector("[data-checkout-error='true']")
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 50);
+  }, [fieldErrors, submitError]);
 
   async function loadDeliveryZones() {
     setZonesLoading(true);
@@ -170,7 +181,7 @@ export function CheckoutPageClient() {
         setFieldErrors(nextFieldErrors);
         setSubmitStatus(response.status);
         setDebugResponse(json);
-        throw new Error(json.message);
+        throw new Error(translateCheckoutError(json.message, nextFieldErrors, cart.items));
       }
 
       setCreatedOrder(json.data);
@@ -192,23 +203,27 @@ export function CheckoutPageClient() {
         className="min-h-screen bg-[var(--store-background)] px-5 pb-28 pt-5 text-[var(--store-text)]"
       >
         <div className="mx-auto max-w-md md:max-w-3xl">
-          <section className="rounded-[18px] border border-emerald-100 bg-white px-5 py-8 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <section className="rounded-xl border border-emerald-100 bg-white px-5 py-8 text-center">
             <CheckCircle2 className="mx-auto size-10 text-[var(--store-primary)]" />
-            <h1 className="mt-4 text-xl font-bold">تم إنشاء الطلب</h1>
+            <h1 className="mt-4 text-xl font-semibold">تم استلام طلبك</h1>
             <p className="mt-2 text-sm text-[var(--store-text-muted)]">
-              رقم الطلب #{createdOrder.orderNumber}. افتح واتساب لإرسال تفاصيل الطلب
-              إلى المتجر.
+              طلب #{createdOrder.orderNumber}
             </p>
+            <div className="mt-5 space-y-2 rounded-lg border border-[var(--store-border)] bg-slate-50 px-4 py-3 text-right text-sm">
+              <SummaryLine label="الهاتف" value={createdOrder.customerPhone} />
+              <SummaryLine label="العنوان" value={createdOrder.address} />
+              <SummaryLine label="الإجمالي" value={formatIqd(createdOrder.total)} strong />
+            </div>
             <button
               type="button"
               onClick={() => openWhatsappOrder(createdOrder)}
-              className="mt-6 flex h-12 w-full items-center justify-center rounded-[12px] bg-[var(--store-primary)] text-sm font-bold text-white"
+              className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-[var(--store-primary)] text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
             >
-              فتح واتساب مرة أخرى
+              إرسال عبر واتساب
             </button>
             <Link
               href="/"
-              className="mt-3 flex h-11 w-full items-center justify-center rounded-[12px] border border-[var(--store-border)] bg-white text-sm font-bold"
+              className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-[var(--store-border)] bg-white text-sm font-semibold transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-100"
             >
               العودة للتسوق
             </Link>
@@ -228,23 +243,23 @@ export function CheckoutPageClient() {
         <header className="flex items-center gap-3">
           <Link
             href="/cart"
-            className="flex size-9 items-center justify-center rounded-full bg-white text-[var(--store-text)] ring-1 ring-[var(--store-border)]"
+            className="flex size-10 items-center justify-center rounded-lg bg-white text-[var(--store-text)] ring-1 ring-[var(--store-border)]"
             aria-label="العودة للسلة"
           >
             <ArrowRight className="size-4" />
           </Link>
           <div>
             <p className="text-xs text-[var(--store-text-muted)]">الدفع عند الاستلام</p>
-            <h1 className="text-xl font-bold">إتمام الطلب</h1>
+            <h1 className="text-xl font-semibold">إتمام الطلب</h1>
           </div>
         </header>
 
         {cart.items.length === 0 ? (
-          <section className="rounded-[18px] border border-[var(--store-border)] bg-white px-5 py-10 text-center">
-            <p className="text-sm font-bold">السلة فارغة</p>
+          <section className="rounded-xl border border-[var(--store-border)] bg-white px-5 py-10 text-center">
+            <p className="text-sm font-semibold">السلة فارغة</p>
             <Link
               href="/"
-              className="mt-5 inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--store-primary)] px-4 text-sm font-bold text-white"
+              className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[var(--store-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200"
             >
               العودة للتسوق
             </Link>
@@ -254,8 +269,8 @@ export function CheckoutPageClient() {
             onSubmit={handleSubmit}
             className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]"
           >
-            <section className="space-y-4 rounded-[18px] border border-[var(--store-border)] bg-white p-4">
-              <h2 className="text-base font-bold">معلومات التوصيل</h2>
+            <section className="space-y-4 rounded-xl border border-[var(--store-border)] bg-white p-4">
+              <h2 className="text-base font-semibold">معلومات التوصيل</h2>
               <Field label="الاسم الكامل" required error={fieldErrors.customerName}>
                 <input
                   value={form.customerName}
@@ -306,12 +321,12 @@ export function CheckoutPageClient() {
                 </select>
               </Field>
               {zonesError && (
-                <div className="flex items-center justify-between rounded-[12px] bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                   <span>{zonesError}</span>
                   <button
                     type="button"
                     onClick={() => void loadDeliveryZones()}
-                    className="inline-flex items-center gap-1 font-bold"
+                    className="inline-flex min-h-10 items-center gap-1 rounded-md px-2 font-semibold transition hover:bg-amber-100"
                   >
                     <RefreshCw className="size-3" />
                     إعادة المحاولة
@@ -319,7 +334,7 @@ export function CheckoutPageClient() {
                 </div>
               )}
               {selectedZone && (
-                <div className="rounded-[12px] bg-[var(--store-primary-soft)] px-3 py-2 text-xs text-[var(--store-primary-strong)]">
+                <div className="rounded-lg bg-[var(--store-primary-soft)] px-3 py-2 text-xs text-[var(--store-primary-strong)]">
                   رسوم التوصيل {formatIqd(selectedZone.fee)}
                   {selectedZone.freeDeliveryFrom
                     ? `، توصيل مجاني للطلبات من ${formatIqd(selectedZone.freeDeliveryFrom)}`
@@ -382,12 +397,12 @@ export function CheckoutPageClient() {
             </section>
 
             <aside className="space-y-4 lg:sticky lg:top-5 lg:self-start">
-              <section className="rounded-[18px] border border-[var(--store-border)] bg-white p-4">
-                <h2 className="text-base font-bold">ملخص الطلب</h2>
+              <section className="rounded-xl border border-[var(--store-border)] bg-white p-4">
+                <h2 className="text-base font-semibold">ملخص الطلب</h2>
                 <div className="mt-4 space-y-3">
                   {cart.items.map((item) => (
                     <div key={item.productId} className="flex gap-3">
-                      <div className="relative size-14 shrink-0 overflow-hidden rounded-[12px] bg-[var(--store-primary-soft)]">
+                      <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--store-primary-soft)]">
                         <StoreProductImage
                           src={item.image}
                           alt={item.name}
@@ -395,12 +410,12 @@ export function CheckoutPageClient() {
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold">{item.name}</p>
+                        <p className="truncate text-xs font-semibold">{item.name}</p>
                         <p className="mt-1 text-[11px] text-[var(--store-text-muted)]">
                           {formatQuantity(item.quantity)} {productUnitLabels[item.unit]}
                         </p>
                       </div>
-                      <p className="text-xs font-bold">
+                      <p className="text-xs font-semibold">
                         {formatIqd(Number(item.price) * item.quantity)}
                       </p>
                     </div>
@@ -418,7 +433,7 @@ export function CheckoutPageClient() {
                 </div>
               </section>
 
-              <section className="rounded-[18px] border border-[var(--store-border)] bg-white p-4">
+              <section className="rounded-xl border border-[var(--store-border)] bg-white p-4">
                 <Field label="كود الخصم" error={fieldErrors.couponCode}>
                   <input
                     value={form.couponCode}
@@ -430,13 +445,16 @@ export function CheckoutPageClient() {
               </section>
 
               {submitError && (
-                <div className="space-y-2 rounded-[14px] border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
-                  <p className="font-bold">تعذر إتمام الطلب</p>
+                <div
+                  data-checkout-error="true"
+                  className="space-y-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600"
+                >
+                  <p className="font-semibold">تعذر إتمام الطلب</p>
                   <p>{submitError}</p>
                   {submitStatus && isDevelopment && (
                     <p className="text-xs">HTTP: {submitStatus}</p>
                   )}
-                  {getCartLevelErrors(fieldErrors).map((message) => (
+                  {getCartLevelErrors(fieldErrors, cart.items).map((message) => (
                     <p key={message} className="text-xs">
                       {message}
                     </p>
@@ -449,10 +467,10 @@ export function CheckoutPageClient() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--store-primary)] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[var(--store-primary)] text-sm font-semibold text-white transition hover:bg-[var(--store-primary-strong)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-                {isSubmitting ? "جاري إنشاء الطلب..." : "إتمام الطلب عبر واتساب"}
+                {isSubmitting ? "جاري تأكيد الطلب..." : "إتمام الطلب"}
               </button>
             </aside>
           </form>
@@ -520,6 +538,47 @@ function normalizeWhatsappPhone(value: string | undefined) {
   return digits.length >= 8 ? digits : null;
 }
 
+function translateCheckoutError(
+  message: string,
+  errors: CheckoutFieldErrors,
+  cartItems: CartItem[],
+) {
+  const itemMessages = getCartLevelErrors(errors, cartItems);
+
+  if (itemMessages.length > 0) return itemMessages[0];
+  if (message === "Validation failed") return "تحقق من الحقول المطلوبة ثم حاول مرة أخرى.";
+  if (message.toLowerCase().includes("stock")) {
+    return "تغير توفر أحد المنتجات. عدّل السلة ثم حاول مرة أخرى.";
+  }
+
+  return message || "حدثت مشكلة أثناء حفظ الطلب. يمكنك المحاولة مرة أخرى.";
+}
+
+function SummaryLine({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-[var(--store-text-muted)]">{label}</span>
+      <span
+        className={
+          strong
+            ? "font-semibold text-[var(--store-text)]"
+            : "max-w-[70%] text-left text-[var(--store-text)]"
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function Field({
   label,
   required,
@@ -531,9 +590,11 @@ function Field({
   error?: string[];
   children: React.ReactNode;
 }) {
+  const hasError = Boolean(error?.length);
+
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-bold text-[var(--store-text)]">
+    <label className="block" data-checkout-error={hasError ? "true" : undefined}>
+      <span className="mb-1.5 block text-xs font-semibold text-[var(--store-text)]">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </span>
@@ -559,8 +620,8 @@ function DevelopmentErrorDetails({
   const debug = response.debug;
 
   return (
-    <details className="rounded-[14px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-      <summary className="cursor-pointer font-bold">تفاصيل الخطأ للمطور</summary>
+    <details className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+      <summary className="cursor-pointer font-semibold">تفاصيل الخطأ للمطور</summary>
       <div className="mt-3 space-y-2">
         <DebugRow label="Status" value={status ?? debug.status} />
         <DebugRow label="Route" value={debug.route} />
@@ -572,7 +633,7 @@ function DevelopmentErrorDetails({
         <DebugRow label="Message" value={debug.message} />
         {debug.issues && debug.issues.length > 0 && (
           <div>
-            <p className="font-bold">Validation issues</p>
+            <p className="font-semibold">Validation issues</p>
             <ul className="mt-1 space-y-1">
               {debug.issues.map((issue) => (
                 <li key={`${issue.path}-${issue.code}-${issue.message}`}>
@@ -594,7 +655,7 @@ function DebugRow({ label, value }: { label: string; value: unknown }) {
 
   return (
     <p>
-      <span className="font-bold">{label}: </span>
+      <span className="font-semibold">{label}: </span>
       <span className="font-mono">{String(value)}</span>
     </p>
   );
@@ -623,13 +684,40 @@ function normalizeMessages(value: unknown): string[] {
   return [];
 }
 
-function getCartLevelErrors(errors: CheckoutFieldErrors) {
+function getCartLevelErrors(errors: CheckoutFieldErrors, cartItems: CartItem[]) {
   return Object.entries(errors)
     .filter(([field]) => field === "items" || field.startsWith("items."))
-    .flatMap(([field, messages]) =>
-      messages.map((message) => `${field}: ${message}`),
+    .flatMap(([, messages]) =>
+      messages.map((message) => translateCartErrorMessage(message, cartItems)),
     );
 }
 
+function translateCartErrorMessage(message: string, cartItems: CartItem[]) {
+  const product = cartItems.find((item) => message.includes(item.productId));
+  const productName = product?.name ?? "أحد المنتجات";
+
+  if (message.includes("Insufficient stock")) {
+    return `${productName} لم يعد متوفراً بالكمية المطلوبة.`;
+  }
+
+  if (message.includes("status is")) {
+    return `${productName} غير متوفر حالياً.`;
+  }
+
+  if (message.includes("Quantity is below minimum")) {
+    return `كمية ${productName} أقل من الحد الأدنى.`;
+  }
+
+  if (message.includes("Quantity does not match order step")) {
+    return `كمية ${productName} لا تطابق خطوة الطلب المسموحة.`;
+  }
+
+  if (message.includes("was not found")) {
+    return `${productName} لم يعد متاحاً في المتجر.`;
+  }
+
+  return "تعذر تأكيد أحد منتجات السلة. عدّل السلة ثم حاول مرة أخرى.";
+}
+
 const inputClass =
-  "h-11 w-full rounded-[12px] border border-[var(--store-border)] bg-white px-3 text-sm outline-none transition focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100 disabled:bg-slate-50 disabled:text-[var(--store-muted)]";
+  "h-11 w-full rounded-lg border border-[var(--store-border)] bg-white px-3 text-sm outline-none transition focus:border-[var(--store-primary)] focus:ring-3 focus:ring-emerald-100 disabled:bg-slate-50 disabled:text-[var(--store-muted)]";

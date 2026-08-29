@@ -1,4 +1,4 @@
-import { ProductCard } from "@/components/store/product/product-card";
+import { ProductGrid } from "@/components/store/product/product-grid";
 import { SectionHeader } from "@/components/store/shared/section-header";
 import type { StoreProduct } from "@/features/catalog/types";
 
@@ -17,13 +17,7 @@ export function RelatedProducts({
         title="منتجات مشابهة"
         href={categorySlug ? `/categories/${categorySlug}` : undefined}
       />
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {products.map((product) => (
-          <div key={product.id} className="w-[142px] shrink-0 sm:w-[160px]">
-            <ProductCard product={product} />
-          </div>
-        ))}
-      </div>
+      <ProductGrid products={products} compact />
     </section>
   );
 }

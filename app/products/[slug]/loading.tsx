@@ -11,7 +11,7 @@ export default function ProductLoading() {
           <div className="size-9 animate-pulse rounded-full bg-slate-100" />
         </div>
         <div className="rounded-b-[28px] bg-[#f7f7f7] px-5 pb-7 pt-3">
-          <div className="mx-auto aspect-[1.25/1] max-w-[360px] animate-pulse rounded-[24px] bg-slate-100" />
+          <div className="mx-auto aspect-square max-w-[360px] animate-pulse rounded-xl bg-slate-100" />
           <div className="mx-auto mt-3 h-1.5 w-5 rounded-full bg-emerald-200" />
         </div>
         <div className="space-y-4 px-5 pt-5">

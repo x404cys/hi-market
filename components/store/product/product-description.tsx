@@ -9,7 +9,7 @@ export function ProductDescription({ description }: { description?: string | nul
 
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-bold text-[var(--store-text)]">تفاصيل المنتج</h2>
+      <h2 className="text-sm font-semibold text-[var(--store-text)]">تفاصيل المنتج</h2>
       <p
         className={`text-xs leading-5 text-[var(--store-text-muted)] ${
           !expanded && shouldClamp ? "line-clamp-3" : ""
@@ -21,7 +21,7 @@ export function ProductDescription({ description }: { description?: string | nul
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
-          className="text-xs font-bold text-[var(--store-primary)] underline underline-offset-2"
+          className="text-xs font-semibold text-[var(--store-primary)] underline underline-offset-2"
         >
           {expanded ? "عرض أقل" : "عرض المزيد"}
         </button>

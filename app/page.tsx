@@ -62,8 +62,13 @@ export default async function Page({ searchParams }: HomePageProps) {
       dir="rtl"
       className="min-h-screen bg-[var(--store-background)] px-5 pb-24 pt-5 text-[var(--store-text)]"
     >
-      <div className="mx-auto max-w-md space-y-7 md:max-w-5xl">
-        <StoreHeader filters={filters} categories={categories} brands={brands} />
+      <div className="mx-auto max-w-md space-y-6 md:max-w-6xl xl:max-w-7xl">
+        <StoreHeader
+          filters={filters}
+          categories={categories}
+          brands={brands}
+          resultCount={products.length}
+        />
         <HomeHeroBanner banner={heroBanner} />
         {hasCatalogError && (
           <EmptyState
@@ -71,10 +76,16 @@ export default async function Page({ searchParams }: HomePageProps) {
             description="تحقق من اتصال قاعدة البيانات ثم أعد المحاولة."
           />
         )}
-        <CategoriesSection categories={categories} />
+        <CategoriesSection categories={categories} activeSlug={filters.category} linkMode="filter" />
         <BestDealsSection
           products={products}
-          title={hasStorefrontFilters(filters) ? "نتائج المنتجات" : "أفضل العروض"}
+          title={
+            filters.search
+              ? `نتائج البحث عن "${filters.search}"`
+              : hasStorefrontFilters(filters)
+                ? "نتائج المنتجات"
+                : "أفضل العروض"
+          }
           emptyTitle={
             hasStorefrontFilters(filters)
               ? "لا توجد منتجات مطابقة"

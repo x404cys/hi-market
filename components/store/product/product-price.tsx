@@ -14,8 +14,8 @@ export function ProductPrice({
       <span
         className={
           compact
-            ? "text-[13px] font-bold text-[var(--store-text)]"
-            : "text-lg font-bold text-[var(--store-text)]"
+            ? "text-[13px] font-semibold text-[var(--store-text)]"
+            : "text-lg font-semibold text-[var(--store-text)]"
         }
       >
         {formatIqd(price)}

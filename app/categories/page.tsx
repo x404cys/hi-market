@@ -17,8 +17,8 @@ export default async function CategoriesPage() {
       dir="rtl"
       className="min-h-screen bg-[var(--store-background)] px-5 pb-24 pt-5 text-[var(--store-text)]"
     >
-      <div className="mx-auto max-w-md space-y-5 md:max-w-5xl">
-        <h1 className="text-xl font-bold">التصنيفات</h1>
+      <div className="mx-auto max-w-md space-y-5 md:max-w-6xl xl:max-w-7xl">
+        <h1 className="text-xl font-semibold">التصنيفات</h1>
         {hasError ? (
           <EmptyState
             title="تعذر تحميل التصنيفات"

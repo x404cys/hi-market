@@ -5,14 +5,32 @@ import { StoreProductImage } from "@/components/store/shared/product-image";
 import type { StoreProduct } from "@/features/catalog/types";
 import { getProductImages } from "@/features/catalog/utils";
 
-export function ProductImageGallery({ product }: { product: StoreProduct }) {
+export function ProductImageGallery({
+  product,
+  compact = false,
+}: {
+  product: StoreProduct;
+  compact?: boolean;
+}) {
   const images = getProductImages(product);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? product.image;
 
   return (
-    <section className="rounded-b-[28px] bg-[#f7f7f7] px-5 pb-7 pt-3">
-      <div className="relative mx-auto aspect-[1.25/1] max-w-[360px]">
+    <section
+      className={
+        compact
+          ? "bg-[#f7f8f8] px-5 pb-4 pt-2"
+          : "rounded-b-xl bg-[#f7f8f8] px-5 pb-6 pt-3 md:rounded-xl md:border md:border-[var(--store-border)]"
+      }
+    >
+      <div
+        className={
+          compact
+            ? "relative mx-auto aspect-square max-w-[280px]"
+            : "relative mx-auto aspect-square max-w-[380px]"
+        }
+      >
         <StoreProductImage
           src={activeImage}
           alt={product.name}

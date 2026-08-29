@@ -1,7 +1,8 @@
-import { ArrowRight, Heart } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { FavoriteButton } from "@/components/store/product/favorite-button";
 import { ProductDescription } from "@/components/store/product/product-description";
 import { ProductDetailActions } from "@/components/store/product/product-detail-actions";
 import { ProductImageGallery } from "@/components/store/product/product-image-gallery";
@@ -77,13 +78,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <ArrowRight className="size-4" />
           </Link>
           <h1 className="text-sm font-bold">تفاصيل المنتج</h1>
-          <button
-            type="button"
-            className="flex size-9 items-center justify-center rounded-full bg-white text-[var(--store-text)] shadow-[0_8px_18px_rgba(15,23,42,0.08)] ring-1 ring-[var(--store-border)]"
-            aria-label="إضافة إلى المفضلة"
-          >
-            <Heart className="size-4" />
-          </button>
+          <FavoriteButton
+            productId={product.id}
+            className="size-9 text-[var(--store-text)] ring-1 ring-[var(--store-border)]"
+          />
         </header>
 
         <ProductImageGallery product={product} />

@@ -299,21 +299,59 @@ export async function listStoreProducts(options?: {
   limit?: number;
   search?: string;
   categoryId?: string;
+  categorySlug?: string;
+  brandSlug?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  inStock?: boolean;
   excludeProductId?: string;
 }) {
   const where: Prisma.ProductWhereInput = {
     status: ProductStatus.ACTIVE,
     ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
+    ...(options?.categorySlug
+      ? { category: { slug: options.categorySlug, isActive: true } }
+      : {}),
+    ...(options?.brandSlug
+      ? { brand: { slug: options.brandSlug, isActive: true } }
+      : {}),
     ...(options?.excludeProductId ? { id: { not: options.excludeProductId } } : {}),
   };
   const search = options?.search?.trim();
+  const minPrice = normalizeStorePriceFilter(options?.minPrice);
+  const maxPrice = normalizeStorePriceFilter(options?.maxPrice);
+
+  if (minPrice || maxPrice) {
+    where.price = {
+      ...(minPrice ? { gte: toPrismaDecimal(minPrice) } : {}),
+      ...(maxPrice ? { lte: toPrismaDecimal(maxPrice) } : {}),
+    };
+  }
+
+  if (options?.inStock) {
+    where.OR = [
+      ...(Array.isArray(where.OR) ? where.OR : []),
+      { trackInventory: false },
+      { allowBackorder: true },
+      { stock: { gt: 0 } },
+    ];
+  }
 
   if (search) {
-    where.OR = [
+    const searchFilters: Prisma.ProductWhereInput[] = [
       { name: { contains: search, mode: "insensitive" } },
       { sku: { contains: search, mode: "insensitive" } },
       { barcode: { contains: search, mode: "insensitive" } },
+      { category: { name: { contains: search, mode: "insensitive" } } },
+      { brand: { name: { contains: search, mode: "insensitive" } } },
     ];
+
+    if (where.OR) {
+      where.AND = [{ OR: Array.isArray(where.OR) ? where.OR : [where.OR] }, { OR: searchFilters }];
+      delete where.OR;
+    } else {
+      where.OR = searchFilters;
+    }
   }
 
   const products = await prisma.product.findMany({
@@ -328,6 +366,16 @@ export async function listStoreProducts(options?: {
   });
 
   return products.map(serializeProduct);
+}
+
+function normalizeStorePriceFilter(value: string | undefined) {
+  if (!value) return null;
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) return null;
+
+  return numericValue.toString();
 }
 
 export async function listRelatedStoreProducts(product: {

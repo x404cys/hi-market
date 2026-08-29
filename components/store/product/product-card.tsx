@@ -1,8 +1,9 @@
 "use client";
 
-import { Heart, Plus, ShoppingBag } from "lucide-react";
+import { Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { FavoriteButton } from "@/components/store/product/favorite-button";
 import { ProductPrice } from "@/components/store/product/product-price";
 import { StoreProductImage } from "@/components/store/shared/product-image";
 import type { StoreProduct } from "@/features/catalog/types";
@@ -11,7 +12,6 @@ import { addProductToCart } from "@/features/cart/store";
 
 export function ProductCard({ product }: { product: StoreProduct }) {
   const discount = getDiscountPercent(product);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [added, setAdded] = useState(false);
 
   function handleAddToCart() {
@@ -29,14 +29,10 @@ export function ProductCard({ product }: { product: StoreProduct }) {
           </span>
         ) : null}
       </div>
-      <button
-        type="button"
-        onClick={() => setIsFavorite((current) => !current)}
-        className="absolute left-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/90 text-[var(--store-primary)] shadow-sm"
-        aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
-      >
-        <Heart className={`size-4 ${isFavorite ? "fill-current" : ""}`} />
-      </button>
+      <FavoriteButton
+        productId={product.id}
+        className="absolute left-2 top-2 z-10 size-7"
+      />
 
       <Link href={`/products/${product.slug}`} className="block">
         <div className="relative mt-5 aspect-[1.08/1]">

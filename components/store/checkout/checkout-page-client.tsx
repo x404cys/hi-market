@@ -130,8 +130,6 @@ export function CheckoutPageClient() {
     setFieldErrors({});
     setDebugResponse(null);
 
-    let apiErrorLogged = false;
-
     try {
       const payload = {
         customerName: form.customerName,
@@ -152,18 +150,6 @@ export function CheckoutPageClient() {
         })),
       };
 
-      if (isDevelopment) {
-        console.log("[CART BEFORE CHECKOUT]", {
-          itemCount: cart.items.length,
-          items: cart.items.map((item) => ({
-            productId: item.productId,
-            name: item.name,
-            quantity: item.quantity,
-          })),
-        });
-        console.log("[CHECKOUT SUBMIT] payload", payload);
-      }
-
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -172,24 +158,12 @@ export function CheckoutPageClient() {
         body: JSON.stringify(payload),
       });
 
-      if (isDevelopment) {
-        console.log("[CHECKOUT RESPONSE STATUS]", response.status);
-      }
-
       let json: ApiSuccess<OrderDto> | ApiErrorResponse;
 
       try {
         json = (await response.json()) as ApiSuccess<OrderDto> | ApiErrorResponse;
-      } catch (jsonError) {
-        if (isDevelopment) {
-          console.error("[CHECKOUT INVALID JSON RESPONSE]", jsonError);
-        }
-
+      } catch {
         throw new Error(`تعذر قراءة استجابة الخادم. HTTP: ${response.status}`);
-      }
-
-      if (isDevelopment) {
-        console.log("[CHECKOUT RESPONSE BODY]", json);
       }
 
       if (!json.success) {
@@ -197,30 +171,13 @@ export function CheckoutPageClient() {
         setFieldErrors(nextFieldErrors);
         setSubmitStatus(response.status);
         setDebugResponse(json);
-
-        if (isDevelopment) {
-          console.error("[CHECKOUT ERROR]", json);
-        }
-
-        apiErrorLogged = true;
         throw new Error(json.message);
-      }
-
-      if (isDevelopment) {
-        console.log("[WHATSAPP] Order received", {
-          orderId: json.data.id,
-          orderNumber: json.data.orderNumber,
-        });
       }
 
       setCreatedOrder(json.data);
       clearCart();
       openWhatsappOrder(json.data);
     } catch (error) {
-      if (isDevelopment && !apiErrorLogged) {
-        console.error("[CHECKOUT NETWORK ERROR]", error);
-      }
-
       setSubmitError(
         error instanceof Error ? error.message : "تعذر إتمام الطلب حالياً.",
       );
@@ -512,16 +469,6 @@ function openWhatsappOrder(order: OrderDto) {
 
   const message = buildWhatsappMessage(order);
   const url = `https://wa.me/${storeWhatsappPhone}?text=${encodeURIComponent(message)}`;
-  if (isDevelopment) {
-    console.log("[WHATSAPP] Message generated", {
-      orderNumber: order.orderNumber,
-      lineCount: message.split("\n").length,
-    });
-    console.log("[WHATSAPP] URL generated", {
-      phone: storeWhatsappPhone,
-      length: url.length,
-    });
-  }
   const opened = window.open(url, "_blank");
 
   if (!opened) {

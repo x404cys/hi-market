@@ -21,10 +21,10 @@ type R2Config = {
 let r2Client: S3Client | null = null;
 
 function getR2Config(): R2Config {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-  const bucketName = process.env.R2_BUCKET_NAME;
+  const accountId = "624a1ca9c651db4b04dc9c671c88d3e9";
+  const accessKeyId = "10771dc76a04d1df7a7274afe3a260b8";
+  const secretAccessKey = "645c284931ccc772040d5cd127756b697676ebef42be9232b45658e1020ed7fb";
+  const bucketName = "himarket";
 
   if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
     throw new Error("Cloudflare R2 is not configured");

@@ -8,7 +8,6 @@ import { formatIqd, formatQuantity } from "@/lib/products/product-format";
 import { getDashboardStats } from "@/lib/services/dashboard.service";
 import {
   AlertTriangle,
-  ArrowUpLeft,
   Boxes,
   ClipboardList,
   Clock3,
@@ -30,23 +29,7 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-4 py-5 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-        <header className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500">صباح الخير</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal">
-              لوحة التحكم
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              إليك نظرة سريعة على أداء المتجر اليوم.
-            </p>
-          </div>
-          <Button asChild className="h-9 gap-2 self-start rounded-md px-3">
-            <Link href="/dashboard/orders">
-              عرض الطلبات
-              <ArrowUpLeft className="size-4" />
-            </Link>
-          </Button>
-        </header>
+         
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <DashboardMetricCard

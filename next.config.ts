@@ -2,40 +2,19 @@ import type { NextConfig } from "next";
 
 function getR2ImageRemotePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
-  const patterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
-    {
-      protocol: "https",
-      hostname: "**.r2.cloudflarestorage.com",
-      pathname: "/products/**",
-    },
-    {
-      protocol: "https",
-      hostname: "**.r2.cloudflarestorage.com",
-      pathname: "/banners/**",
-    },
-  ];
+  const patterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [];
 
   if (!publicUrl) return patterns;
 
   try {
     const url = new URL(publicUrl);
+    const basePath = url.pathname.replace(/\/+$/, "");
 
-    if (url.hostname !== "**.r2.cloudflarestorage.com") {
-      const basePath = url.pathname.replace(/\/$/, "");
-
-      patterns.unshift(
-        {
-          protocol: "https",
-          hostname: url.hostname,
-          pathname: `${basePath}/products/**`,
-        },
-        {
-          protocol: "https",
-          hostname: url.hostname,
-          pathname: `${basePath}/banners/**`,
-        },
-      );
-    }
+    patterns.push({
+      protocol: "https",
+      hostname: url.hostname,
+      pathname: `${basePath || ""}/**`,
+    });
   } catch {
     return patterns;
   }

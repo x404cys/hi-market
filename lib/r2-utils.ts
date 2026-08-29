@@ -54,9 +54,9 @@ export function isValidProductImageKey(key: string) {
 export function isValidBannerImageKey(key: string) {
   return bannerImageKeyPattern.test(key);
 }
-
+ 
 export function getR2PublicBaseUrl() {
-  return process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/$/, "") ?? "";
+  return "https://pub-d3f32ffc98ac49418a360ec5172510f4.r2.dev";
 }
 
 export function getR2PublicUrl(key: string) {
@@ -66,14 +66,32 @@ export function getR2PublicUrl(key: string) {
     throw new Error("NEXT_PUBLIC_R2_PUBLIC_URL is not configured");
   }
 
-  return `${baseUrl}/${key}`;
+  const normalizedKey = key.replace(/^\/+/, "");
+
+  return `${baseUrl}/${normalizedKey}`;
 }
 
 export function getOwnedR2ObjectKeyFromUrl(value: string) {
   return getOwnedProductImageKeyFromUrl(value);
 }
 
+export function getR2KeyFromPublicUrl(value: string) {
+  return getOwnedProductImageKeyFromUrl(value) ?? getOwnedBannerImageKeyFromUrl(value);
+}
+
 export function getOwnedProductImageKeyFromUrl(value: string) {
+  const key = getOwnedR2KeyFromPublicUrl(value);
+
+  return key && isValidProductImageKey(key) ? key : null;
+}
+
+export function getOwnedBannerImageKeyFromUrl(value: string) {
+  const key = getOwnedR2KeyFromPublicUrl(value);
+
+  return key && isValidBannerImageKey(key) ? key : null;
+}
+
+function getOwnedR2KeyFromPublicUrl(value: string) {
   const baseUrl = getR2PublicBaseUrl();
 
   if (!baseUrl) return null;
@@ -93,39 +111,15 @@ export function getOwnedProductImageKeyFromUrl(value: string) {
     const basePath = base.pathname.replace(/\/$/, "");
     const pathname = decodeURIComponent(url.pathname);
 
-    const keyPath = basePath
-      ? pathname.replace(`${basePath}/`, "")
-      : pathname.slice(1);
-
-    return isValidProductImageKey(keyPath)
-      ? keyPath
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function getOwnedBannerImageKeyFromUrl(value: string) {
-  const baseUrl = getR2PublicBaseUrl();
-
-  if (!baseUrl) return null;
-
-  try {
-    const url = new URL(value);
-    const base = new URL(baseUrl);
-
-    if (url.origin !== base.origin || url.search || url.hash) {
+    if (basePath && pathname !== basePath && !pathname.startsWith(`${basePath}/`)) {
       return null;
     }
 
-    const basePath = base.pathname.replace(/\/$/, "");
-    const pathname = decodeURIComponent(url.pathname);
-
-    const keyPath = basePath
-      ? pathname.replace(`${basePath}/`, "")
+    const keyPath = basePath && pathname.startsWith(`${basePath}/`)
+      ? pathname.slice(basePath.length + 1)
       : pathname.slice(1);
 
-    return isValidBannerImageKey(keyPath) ? keyPath : null;
+    return keyPath || null;
   } catch {
     return null;
   }

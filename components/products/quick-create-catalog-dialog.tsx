@@ -1,6 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  CategoryImageUploader,
+  cleanupCategoryImageKeys,
+  emptyCategoryImage,
+  getCategoryImageIssue,
+  uploadPendingCategoryImage,
+  type CategoryImageFormItem,
+} from "@/components/dashboard/categories/category-image-uploader";
 import { createSlug } from "@/lib/products/product-format";
 import type {
   ApiErrorResponse,
@@ -19,7 +27,7 @@ import {
 
 type QuickCreateKind = "category" | "brand";
 type QuickCreateResult = CategoryOption | BrandOption;
-type FieldErrors = Partial<Record<"name" | "slug" | "form", string>>;
+type FieldErrors = Partial<Record<"name" | "slug" | "image" | "form", string>>;
 
 const dialogCopy: Record<
   QuickCreateKind,
@@ -68,7 +76,9 @@ export function QuickCreateCatalogDialog({
 }) {
   const copy = dialogCopy[kind];
   const [name, setName] = useState(initialName);
-  const [slug, setSlug] = useState(createSlug(initialName));
+  const [slug, setSlug] = useState(createCatalogSlug(initialName, ""));
+  const [categoryImage, setCategoryImage] =
+    useState<CategoryImageFormItem>(emptyCategoryImage);
   const [isSlugDirty, setIsSlugDirty] = useState(Boolean(initialName));
   const [isCreating, setIsCreating] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -89,7 +99,7 @@ export function QuickCreateCatalogDialog({
     setErrors((current) => ({ ...current, name: undefined, form: undefined }));
 
     if (!isSlugDirty) {
-      setSlug(createSlug(value));
+      setSlug(createCatalogSlug(value, slug));
       setErrors((current) => ({ ...current, slug: undefined }));
     }
   }
@@ -108,7 +118,14 @@ export function QuickCreateCatalogDialog({
 
     const nextErrors: FieldErrors = {};
     if (!name.trim()) nextErrors.name = "هذا الحقل مطلوب";
-    if (!slug.trim()) nextErrors.slug = "هذا الحقل مطلوب";
+    const normalizedSlug =
+      kind === "category" ? createCatalogSlug(name, slug) : slug.trim();
+    if (!normalizedSlug) nextErrors.slug = "هذا الحقل مطلوب";
+
+    if (kind === "category") {
+      const imageIssue = getCategoryImageIssue(categoryImage);
+      if (imageIssue) nextErrors.image = imageIssue;
+    }
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -116,8 +133,19 @@ export function QuickCreateCatalogDialog({
     }
 
     setIsCreating(true);
+    const uploadedKeys: string[] = [];
+    let uploadedImage = categoryImage;
 
     try {
+      if (kind === "category") {
+        const upload = await uploadPendingCategoryImage(
+          categoryImage,
+          setCategoryImage,
+        );
+        uploadedImage = upload.image;
+        if (upload.uploadedKey) uploadedKeys.push(upload.uploadedKey);
+      }
+
       const response = await fetch(copy.endpoint, {
         method: "POST",
         headers: {
@@ -125,7 +153,8 @@ export function QuickCreateCatalogDialog({
         },
         body: JSON.stringify({
           name: name.trim(),
-          slug: slug.trim(),
+          slug: normalizedSlug,
+          ...(kind === "category" ? { image: uploadedImage.url || null } : {}),
         }),
       });
       const json = (await response.json()) as
@@ -133,6 +162,10 @@ export function QuickCreateCatalogDialog({
         | ApiErrorResponse;
 
       if (!json.success) {
+        if (uploadedKeys.length > 0) {
+          await cleanupCategoryImageKeys(uploadedKeys);
+          setCategoryImage(resetUploadedCategoryImage(uploadedImage, uploadedKeys));
+        }
         setErrors(apiErrorToFieldErrors(json, kind));
         setIsCreating(false);
         return;
@@ -141,6 +174,10 @@ export function QuickCreateCatalogDialog({
       onCreated(json.data, copy.successMessage);
       closeDialog();
     } catch {
+      if (uploadedKeys.length > 0) {
+        await cleanupCategoryImageKeys(uploadedKeys);
+        setCategoryImage(resetUploadedCategoryImage(uploadedImage, uploadedKeys));
+      }
       setErrors({ form: "تعذر الاتصال بالخادم. حاول مرة أخرى." });
       setIsCreating(false);
     }
@@ -225,28 +262,53 @@ export function QuickCreateCatalogDialog({
             )}
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-800">
-              Slug <span className="text-red-600">*</span>
-            </span>
-            <input
-              value={slug}
-              onChange={(event) => handleSlugChange(event.target.value)}
-              className={inputClass(errors.slug)}
-              dir="ltr"
-              placeholder={kind === "category" ? "beverages" : "coca-cola"}
-              disabled={isCreating}
-            />
-            {errors.slug ? (
-              <span className="mt-1.5 block text-xs text-red-600">
-                {errors.slug}
+          {kind === "brand" ? (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-slate-800">
+                Slug <span className="text-red-600">*</span>
               </span>
-            ) : (
-              <span className="mt-1.5 block text-xs text-slate-500">
-                استخدم أحرف إنجليزية صغيرة وأرقام وشرطات.
-              </span>
-            )}
-          </label>
+              <input
+                value={slug}
+                onChange={(event) => handleSlugChange(event.target.value)}
+                className={inputClass(errors.slug)}
+                dir="ltr"
+                placeholder="coca-cola"
+                disabled={isCreating}
+              />
+              {errors.slug ? (
+                <span className="mt-1.5 block text-xs text-red-600">
+                  {errors.slug}
+                </span>
+              ) : (
+                <span className="mt-1.5 block text-xs text-slate-500">
+                  استخدم أحرف إنجليزية صغيرة وأرقام وشرطات.
+                </span>
+              )}
+            </label>
+          ) : (
+            <div className="space-y-2">
+              <CategoryImageUploader
+                value={categoryImage}
+                disabled={isCreating}
+                onChange={(image) => {
+                  setCategoryImage(image);
+                  setErrors((current) => ({
+                    ...current,
+                    image: undefined,
+                    form: undefined,
+                  }));
+                }}
+              />
+              {errors.image && (
+                <span className="block text-xs text-red-600">{errors.image}</span>
+              )}
+              {errors.slug && (
+                <span className="block text-xs text-red-600">
+                  {translateCatalogMessage(errors.slug)}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button
@@ -304,6 +366,29 @@ function firstApiErrorMessage(value: unknown) {
   if (Array.isArray(value) && typeof value[0] === "string") return value[0];
   if (typeof value === "string") return value;
   return null;
+}
+
+function createCatalogSlug(value: string, currentSlug: string) {
+  const slug = createSlug(value);
+  if (slug) return slug;
+  if (currentSlug) return currentSlug;
+  if (!value.trim()) return "";
+
+  return `category-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function resetUploadedCategoryImage(
+  image: CategoryImageFormItem,
+  uploadedKeys: string[],
+): CategoryImageFormItem {
+  if (!image.key || !uploadedKeys.includes(image.key)) return image;
+
+  return {
+    ...image,
+    url: "",
+    key: null,
+    status: image.file ? "ready" : "empty",
+  };
 }
 
 function translateCatalogMessage(message: string, kind?: QuickCreateKind) {

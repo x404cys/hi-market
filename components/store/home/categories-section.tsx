@@ -1,10 +1,7 @@
-import { Apple, Beef, CupSoda, Milk, Package, Sprout } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { SectionHeader } from "@/components/store/shared/section-header";
+import { StoreCategoryImage } from "@/components/store/shared/category-image";
 import type { StoreCategory } from "@/features/catalog/types";
-
-const fallbackIcons = [Sprout, Apple, Milk, CupSoda, Beef, Package];
 
 export function CategoriesSection({
   categories,
@@ -25,8 +22,7 @@ export function CategoriesSection({
         </div>
       ) : (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {categories.slice(0, 12).map((category, index) => {
-            const Icon = fallbackIcons[index % fallbackIcons.length];
+          {categories.slice(0, 12).map((category) => {
             const active = category.slug === activeSlug;
             const href =
               linkMode === "filter"
@@ -44,17 +40,12 @@ export function CategoriesSection({
                 }`}
               >
                 <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg bg-[var(--store-primary-soft)] text-[var(--store-primary)]">
-                  {category.image ? (
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      sizes="36px"
-                      className="object-contain p-1.5"
-                    />
-                  ) : (
-                    <Icon className="size-5" />
-                  )}
+                  <StoreCategoryImage
+                    src={category.image}
+                    alt={category.name}
+                    sizes="36px"
+                    className="object-cover"
+                  />
                 </span>
                 <span className="max-w-24 truncate text-xs font-medium">
                   {category.name}

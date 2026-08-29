@@ -52,15 +52,16 @@ export async function createCategoryOption(input: QuickCreateCategoryInput) {
       data: {
         name: input.name,
         slug: input.slug,
+        image: input.image,
       },
       select: {
         id: true,
-      name: true,
-      slug: true,
-      parentId: true,
-      image: true,
-    },
-  });
+        name: true,
+        slug: true,
+        parentId: true,
+        image: true,
+      },
+    });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       throw new ApiError("Category slug already exists", 409, {

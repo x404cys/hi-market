@@ -7,6 +7,7 @@ import {
   GalleryHorizontal,
   Home,
   Layers3,
+  Tags,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,11 @@ const navItems = [
     href: "/dashboard/products",
     label: "المنتجات",
     icon: Boxes,
+  },
+  {
+    href: "/dashboard/categories",
+    label: "الأصناف",
+    icon: Tags,
   },
   {
     href: "/dashboard/banners",

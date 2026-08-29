@@ -3,17 +3,33 @@ import {
   readJsonBody,
   successResponse,
 } from "@/lib/api-response";
+import { revalidatePath } from "next/cache";
 import {
-  createCategoryOption,
   listCategoryOptions,
 } from "@/lib/services/catalog-options.service";
-import { quickCreateCategorySchema } from "@/lib/validations/catalog";
+import {
+  createCategory,
+  listDashboardCategories,
+} from "@/lib/services/category.service";
+import {
+  categoryQuerySchema,
+  createCategorySchema,
+} from "@/lib/validations/category";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    if (request.nextUrl.searchParams.get("scope") === "dashboard") {
+      const query = categoryQuerySchema.parse({
+        search: request.nextUrl.searchParams.get("search") ?? undefined,
+      });
+      const result = await listDashboardCategories(query);
+
+      return successResponse(result);
+    }
+
     const categories = await listCategoryOptions();
 
     return successResponse(categories);
@@ -25,9 +41,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await readJsonBody(request);
-    const input = quickCreateCategorySchema.parse(body);
+    const input = createCategorySchema.parse(body);
+    const category = await createCategory(input);
 
-    const category = await createCategoryOption(input);
+    revalidatePath("/");
+    revalidatePath("/categories");
+    revalidatePath("/dashboard/categories");
 
     return successResponse(category, 201);
   } catch (error) {

@@ -2,9 +2,11 @@ import "server-only";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
+  CATEGORY_IMAGE_PREFIX,
   getExtensionForProductImageMimeType,
   BANNER_IMAGE_PREFIX,
   getR2PublicUrl,
+  isValidCategoryImageKey,
   isValidBannerImageKey,
   isValidProductImageKey,
   PRODUCT_IMAGE_PREFIX,
@@ -24,7 +26,7 @@ function getR2Config(): R2Config {
   const accountId = "624a1ca9c651db4b04dc9c671c88d3e9";
   const accessKeyId = "10771dc76a04d1df7a7274afe3a260b8";
   const secretAccessKey = "645c284931ccc772040d5cd127756b697676ebef42be9232b45658e1020ed7fb";
-  const bucketName = "himarket";
+  const bucketName ="himarket";
 
   if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
     throw new Error("Cloudflare R2 is not configured");
@@ -93,6 +95,25 @@ export async function createBannerImagePresignedPutUrl(fileType: ProductImageMim
   };
 }
 
+export async function createCategoryImagePresignedPutUrl(fileType: ProductImageMimeType) {
+  const config = getR2Config();
+  const key = `${CATEGORY_IMAGE_PREFIX}${crypto.randomUUID()}.${getExtensionForProductImageMimeType(fileType)}`;
+  const command = new PutObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+    ContentType: fileType,
+  });
+  const uploadUrl = await getSignedUrl(getR2Client(), command, {
+    expiresIn: 300,
+  });
+
+  return {
+    uploadUrl,
+    key,
+    publicUrl: getR2PublicUrl(key),
+  };
+}
+
 export async function deleteProductImageObject(key: string) {
   if (!isValidProductImageKey(key)) {
     throw new Error("Invalid product image key");
@@ -111,6 +132,21 @@ export async function deleteProductImageObject(key: string) {
 export async function deleteBannerImageObject(key: string) {
   if (!isValidBannerImageKey(key)) {
     throw new Error("Invalid banner image key");
+  }
+
+  const config = getR2Config();
+
+  await getR2Client().send(
+    new DeleteObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+    }),
+  );
+}
+
+export async function deleteCategoryImageObject(key: string) {
+  if (!isValidCategoryImageKey(key)) {
+    throw new Error("Invalid category image key");
   }
 
   const config = getR2Config();
@@ -148,6 +184,22 @@ export async function deleteBannerImageObjects(keys: string[]) {
   results.forEach((result, index) => {
     if (result.status === "rejected") {
       console.error("Failed to delete banner image from R2", {
+        key: uniqueKeys[index],
+        error: result.reason,
+      });
+    }
+  });
+}
+
+export async function deleteCategoryImageObjects(keys: string[]) {
+  const uniqueKeys = Array.from(new Set(keys)).filter(isValidCategoryImageKey);
+  const results = await Promise.allSettled(
+    uniqueKeys.map((key) => deleteCategoryImageObject(key)),
+  );
+
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error("Failed to delete category image from R2", {
         key: uniqueKeys[index],
         error: result.reason,
       });

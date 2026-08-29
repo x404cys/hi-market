@@ -1,5 +1,6 @@
 export const PRODUCT_IMAGE_PREFIX = "products/";
 export const BANNER_IMAGE_PREFIX = "banners/";
+export const CATEGORY_IMAGE_PREFIX = "categories/";
 
 export const MAX_PRODUCT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES = 10 * 1024 * 1024;
@@ -10,6 +11,11 @@ export const MAX_BANNER_IMAGE_ORIGINAL_SIZE_BYTES =
   MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES;
 export const BANNER_IMAGE_MAX_DIMENSION = 1920;
 export const BANNER_IMAGE_WEBP_QUALITY = 0.82;
+export const MAX_CATEGORY_IMAGE_SIZE_BYTES = MAX_PRODUCT_IMAGE_SIZE_BYTES;
+export const MAX_CATEGORY_IMAGE_ORIGINAL_SIZE_BYTES =
+  MAX_PRODUCT_IMAGE_ORIGINAL_SIZE_BYTES;
+export const CATEGORY_IMAGE_MAX_DIMENSION = 720;
+export const CATEGORY_IMAGE_WEBP_QUALITY = 0.82;
 
 export const productImageMimeTypes = [
   "image/jpeg",
@@ -22,6 +28,8 @@ const productImageKeyPattern =
   /^products\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
 const bannerImageKeyPattern =
   /^banners\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
+const categoryImageKeyPattern =
+  /^categories\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|jpeg|png|webp|avif)$/i;
 
 export type ProductImageMimeType =
   (typeof productImageMimeTypes)[number];
@@ -54,6 +62,10 @@ export function isValidProductImageKey(key: string) {
 export function isValidBannerImageKey(key: string) {
   return bannerImageKeyPattern.test(key);
 }
+
+export function isValidCategoryImageKey(key: string) {
+  return categoryImageKeyPattern.test(key);
+}
  
 export function getR2PublicBaseUrl() {
   return "https://pub-d3f32ffc98ac49418a360ec5172510f4.r2.dev";
@@ -76,7 +88,11 @@ export function getOwnedR2ObjectKeyFromUrl(value: string) {
 }
 
 export function getR2KeyFromPublicUrl(value: string) {
-  return getOwnedProductImageKeyFromUrl(value) ?? getOwnedBannerImageKeyFromUrl(value);
+  return (
+    getOwnedProductImageKeyFromUrl(value) ??
+    getOwnedBannerImageKeyFromUrl(value) ??
+    getOwnedCategoryImageKeyFromUrl(value)
+  );
 }
 
 export function getOwnedProductImageKeyFromUrl(value: string) {
@@ -89,6 +105,12 @@ export function getOwnedBannerImageKeyFromUrl(value: string) {
   const key = getOwnedR2KeyFromPublicUrl(value);
 
   return key && isValidBannerImageKey(key) ? key : null;
+}
+
+export function getOwnedCategoryImageKeyFromUrl(value: string) {
+  const key = getOwnedR2KeyFromPublicUrl(value);
+
+  return key && isValidCategoryImageKey(key) ? key : null;
 }
 
 function getOwnedR2KeyFromPublicUrl(value: string) {
@@ -131,4 +153,8 @@ export function isOwnedR2PublicUrl(value: string) {
 
 export function isOwnedBannerR2PublicUrl(value: string) {
   return getOwnedBannerImageKeyFromUrl(value) !== null;
+}
+
+export function isOwnedCategoryR2PublicUrl(value: string) {
+  return getOwnedCategoryImageKeyFromUrl(value) !== null;
 }

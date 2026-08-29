@@ -39,8 +39,10 @@ export function StoreHeader({
         </Link>
 
         
-
-        <div className=" items-center gap-2 md:flex">
+        <div className="flex items-center gap-2 md:hidden">
+           <HeaderIconLink href="/cart" label="السلة" count={itemCount} icon={<ShoppingBag className="size-4" />} />
+        </div>
+        <div className="hidden items-center gap-2 md:flex">
           <HeaderIconLink href="/favorites" label="المفضلة" count={favoriteCount} icon={<Heart className="size-4" />} />
           <HeaderIconLink href="/cart" label="السلة" count={itemCount} icon={<ShoppingBag className="size-4" />} />
         </div>

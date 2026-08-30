@@ -29,9 +29,7 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-4 py-5 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-         
-
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 grid-cols-2 md:grid-cols-4">
           <DashboardMetricCard
             href="/dashboard/orders?date=today"
             label="طلبات اليوم"
@@ -63,12 +61,101 @@ export default async function DashboardPage() {
             href="/dashboard/products?stockStatus=low"
             label="المنتجات منخفضة المخزون"
             value={stats.lowStockProducts.toLocaleString("ar-IQ")}
-            hint="حسب حد التنبيه لكل منتج"
+            hint=" حد التنبيه لكل منتج"
             icon={AlertTriangle}
             tone="red"
           />
         </section>
+        <aside className="space-y-5  block md:hidden">
+           <Card className="rounded-lg border-slate-200 bg-white shadow-none">
+              <CardContent className="p-4">
+                <h2 className="font-semibold">إجراءات سريعة</h2>
 
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <MobileQuickAction
+                    href="/dashboard/products/new"
+                    icon={PackagePlus}
+                  >
+                    إضافة منتج
+                  </MobileQuickAction>
+
+                  <MobileQuickAction
+                    href="/dashboard/orders?status=PENDING"
+                    icon={ClipboardList}
+                  >
+                    الطلبات
+                  </MobileQuickAction>
+
+                  <MobileQuickAction
+                    href="/dashboard/products?stockStatus=low"
+                    icon={AlertTriangle}
+                  >
+                    مخزون منخفض
+                  </MobileQuickAction>
+
+                  <MobileQuickAction
+                    href="/dashboard/products"
+                    icon={Boxes}
+                  >
+                    المنتجات
+                  </MobileQuickAction>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-lg border-slate-200 bg-white shadow-none">
+              <CardContent className="p-4">
+                <h2 className="font-semibold">يحتاج انتباهك</h2>
+                <div className="mt-4 space-y-3">
+                  {stats.pendingOrders > 0 && (
+                    <AttentionItem
+                      href="/dashboard/orders?status=PENDING"
+                      label="طلبات جديدة"
+                      value={stats.pendingOrders}
+                    />
+                  )}
+                  {stats.lowStockProducts > 0 && (
+                    <AttentionItem
+                      href="/dashboard/products?stockStatus=low"
+                      label="منتجات منخفضة المخزون"
+                      value={stats.lowStockProducts}
+                    />
+                  )}
+                  {stats.outOfStockProducts > 0 && (
+                    <AttentionItem
+                      href="/dashboard/products?stockStatus=out"
+                      label="منتجات نفدت من المخزون"
+                      value={stats.outOfStockProducts}
+                    />
+                  )}
+                  {stats.pendingOrders === 0 &&
+                    stats.lowStockProducts === 0 &&
+                    stats.outOfStockProducts === 0 && (
+                      <p className="rounded-md bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                        لا توجد تنبيهات تشغيلية حالياً.
+                      </p>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {stats.lowStockPreview.length > 0 && (
+              <Card className="rounded-lg border-slate-200 bg-white shadow-none">
+                <CardContent className="p-4">
+                  <h2 className="font-semibold">أقل مخزون</h2>
+                  <div className="mt-4 divide-y divide-slate-100">
+                    {stats.lowStockPreview.map((product) => (
+                      <div key={product.id} className="flex items-center justify-between py-2">
+                        <p className="truncate text-sm font-medium">{product.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {formatQuantity(product.stock)} / {formatQuantity(product.lowStockAt)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </aside>
         <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
           <section className="space-y-5">
             <Card className="rounded-lg border-slate-200 bg-white shadow-none">
@@ -393,4 +480,38 @@ function comparisonLabel(current: number, previous: number) {
   const prefix = change >= 0 ? "+" : "";
 
   return `${prefix}${Math.round(change).toLocaleString("ar-IQ")}% مقارنة بأمس`;
+}
+function MobileQuickAction({
+  href,
+  icon: Icon,
+  children,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="
+        flex min-w-0 flex-col items-center justify-center gap-2
+        rounded-lg border border-slate-200 bg-white
+        px-2 py-3 text-center
+        transition active:bg-slate-50
+      "
+    >
+      <span
+        className="
+          flex size-10 items-center justify-center
+          rounded-lg bg-slate-50 text-slate-700
+        "
+      >
+        <Icon className="size-5" />
+      </span>
+
+      <span className="line-clamp-1 text-[11px] font-medium text-slate-700">
+        {children}
+      </span>
+    </Link>
+  );
 }

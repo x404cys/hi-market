@@ -8,6 +8,7 @@ import { StoreProductImage } from "@/components/store/shared/product-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiError } from "@/lib/api-response";
+import { requirePagePermission } from "@/lib/auth/guards";
 import {
   formatOrderDate,
   formatOrderTime,
@@ -26,6 +27,9 @@ export default async function OrderDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requirePagePermission("orders.read");
+  const canUpdateStatus = user.permissions.includes("orders.updateStatus");
+  const canCancel = user.permissions.includes("orders.cancel");
   const { id } = await params;
   const order = await loadOrder(id);
 
@@ -52,8 +56,17 @@ export default async function OrderDetailsPage({
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-            <OrderStatusControl orderId={order.id} status={order.status} />
-            <QuickNextStatusButton orderId={order.id} status={order.status} />
+            <OrderStatusControl
+              orderId={order.id}
+              status={order.status}
+              canUpdateStatus={canUpdateStatus}
+              canCancel={canCancel}
+            />
+            <QuickNextStatusButton
+              orderId={order.id}
+              status={order.status}
+              canUpdateStatus={canUpdateStatus}
+            />
             <PhoneActions phone={order.customerPhone} />
           </div>
         </header>

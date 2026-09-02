@@ -5,6 +5,7 @@ import {
   formatRelativeTime,
 } from "@/lib/orders/order-format";
 import { formatIqd, formatQuantity } from "@/lib/products/product-format";
+import { requirePagePermission } from "@/lib/auth/guards";
 import { getDashboardStats } from "@/lib/services/dashboard.service";
 import {
   AlertTriangle,
@@ -20,6 +21,10 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const user = await requirePagePermission("dashboard.view");
+  const canCreateProducts = user.permissions.includes("products.create");
+  const canReadProducts = user.permissions.includes("products.read");
+  const canReadOrders = user.permissions.includes("orders.read");
   const stats = await getDashboardStats();
   const maxDailySales = Math.max(
     ...stats.dailySales.map((day) => Number(day.total)),
@@ -72,33 +77,41 @@ export default async function DashboardPage() {
                 <h2 className="font-semibold">إجراءات سريعة</h2>
 
                 <div className="mt-4 grid grid-cols-4 gap-2">
-                  <MobileQuickAction
-                    href="/dashboard/products/new"
-                    icon={PackagePlus}
-                  >
-                    إضافة منتج
-                  </MobileQuickAction>
+                  {canCreateProducts && (
+                    <MobileQuickAction
+                      href="/dashboard/products/new"
+                      icon={PackagePlus}
+                    >
+                      إضافة منتج
+                    </MobileQuickAction>
+                  )}
 
-                  <MobileQuickAction
-                    href="/dashboard/orders?status=PENDING"
-                    icon={ClipboardList}
-                  >
-                    الطلبات
-                  </MobileQuickAction>
+                  {canReadOrders && (
+                    <MobileQuickAction
+                      href="/dashboard/orders?status=PENDING"
+                      icon={ClipboardList}
+                    >
+                      الطلبات
+                    </MobileQuickAction>
+                  )}
 
-                  <MobileQuickAction
-                    href="/dashboard/products?stockStatus=low"
-                    icon={AlertTriangle}
-                  >
-                    مخزون منخفض
-                  </MobileQuickAction>
+                  {canReadProducts && (
+                    <MobileQuickAction
+                      href="/dashboard/products?stockStatus=low"
+                      icon={AlertTriangle}
+                    >
+                      مخزون منخفض
+                    </MobileQuickAction>
+                  )}
 
-                  <MobileQuickAction
-                    href="/dashboard/products"
-                    icon={Boxes}
-                  >
-                    المنتجات
-                  </MobileQuickAction>
+                  {canReadProducts && (
+                    <MobileQuickAction
+                      href="/dashboard/products"
+                      icon={Boxes}
+                    >
+                      المنتجات
+                    </MobileQuickAction>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -295,18 +308,26 @@ export default async function DashboardPage() {
               <CardContent className="p-4">
                 <h2 className="font-semibold">إجراءات سريعة</h2>
                 <div className="mt-4 grid gap-2">
-                  <QuickAction href="/dashboard/products/new" icon={PackagePlus}>
-                    إضافة منتج
-                  </QuickAction>
-                  <QuickAction href="/dashboard/orders?status=PENDING" icon={ClipboardList}>
-                    الطلبات الجديدة
-                  </QuickAction>
-                  <QuickAction href="/dashboard/products?stockStatus=low" icon={AlertTriangle}>
-                    المخزون المنخفض
-                  </QuickAction>
-                  <QuickAction href="/dashboard/products" icon={Boxes}>
-                    إدارة المنتجات
-                  </QuickAction>
+                  {canCreateProducts && (
+                    <QuickAction href="/dashboard/products/new" icon={PackagePlus}>
+                      إضافة منتج
+                    </QuickAction>
+                  )}
+                  {canReadOrders && (
+                    <QuickAction href="/dashboard/orders?status=PENDING" icon={ClipboardList}>
+                      الطلبات الجديدة
+                    </QuickAction>
+                  )}
+                  {canReadProducts && (
+                    <QuickAction href="/dashboard/products?stockStatus=low" icon={AlertTriangle}>
+                      المخزون المنخفض
+                    </QuickAction>
+                  )}
+                  {canReadProducts && (
+                    <QuickAction href="/dashboard/products" icon={Boxes}>
+                      إدارة المنتجات
+                    </QuickAction>
+                  )}
                 </div>
               </CardContent>
             </Card>

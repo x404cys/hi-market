@@ -7,12 +7,14 @@ import {
 } from "@/lib/api-response";
 import { isValidBannerImageKey } from "@/lib/r2-utils";
 import { deleteBannerImageSchema } from "@/lib/validations/product-upload";
+import { requirePermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requirePermission("banners.manage");
     const body = await readJsonBody(request);
     const parsed = deleteBannerImageSchema.safeParse(body);
 

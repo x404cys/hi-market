@@ -14,6 +14,7 @@ import {
   bannerIdSchema,
   updateBannerSchema,
 } from "@/lib/validations/banner";
+import { requirePermission } from "@/lib/auth/guards";
 
 type BannerRouteContext = {
   params: Promise<{
@@ -25,6 +26,7 @@ export const runtime = "nodejs";
 
 export async function GET(_request: NextRequest, context: BannerRouteContext) {
   try {
+    await requirePermission("banners.read");
     const { id } = await context.params;
     const bannerId = bannerIdSchema.parse(id);
     const banner = await getBannerById(bannerId);
@@ -40,6 +42,7 @@ export async function GET(_request: NextRequest, context: BannerRouteContext) {
 
 export async function PATCH(request: NextRequest, context: BannerRouteContext) {
   try {
+    await requirePermission("banners.manage");
     const { id } = await context.params;
     const bannerId = bannerIdSchema.parse(id);
     const body = await readJsonBody(request);
@@ -61,6 +64,7 @@ export async function PATCH(request: NextRequest, context: BannerRouteContext) {
 
 export async function DELETE(_request: NextRequest, context: BannerRouteContext) {
   try {
+    await requirePermission("banners.manage");
     const { id } = await context.params;
     const bannerId = bannerIdSchema.parse(id);
     const banner = await deleteBanner(bannerId);

@@ -14,6 +14,7 @@ import {
   categoryIdSchema,
   updateCategorySchema,
 } from "@/lib/validations/category";
+import { requirePermission } from "@/lib/auth/guards";
 
 type CategoryRouteContext = {
   params: Promise<{
@@ -25,6 +26,7 @@ export const runtime = "nodejs";
 
 export async function GET(_request: NextRequest, context: CategoryRouteContext) {
   try {
+    await requirePermission("categories.read");
     const { id } = await context.params;
     const categoryId = categoryIdSchema.parse(id);
     const category = await getCategoryById(categoryId);
@@ -40,6 +42,7 @@ export async function GET(_request: NextRequest, context: CategoryRouteContext) 
 
 export async function PATCH(request: NextRequest, context: CategoryRouteContext) {
   try {
+    await requirePermission("categories.manage");
     const { id } = await context.params;
     const categoryId = categoryIdSchema.parse(id);
     const body = await readJsonBody(request);
@@ -63,6 +66,7 @@ export async function PATCH(request: NextRequest, context: CategoryRouteContext)
 
 export async function DELETE(_request: NextRequest, context: CategoryRouteContext) {
   try {
+    await requirePermission("categories.manage");
     const { id } = await context.params;
     const categoryId = categoryIdSchema.parse(id);
     const category = await deleteCategory(categoryId);

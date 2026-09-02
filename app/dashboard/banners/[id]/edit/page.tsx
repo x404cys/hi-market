@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { BannerForm } from "@/components/dashboard/banners/banner-form";
 import { ApiError } from "@/lib/api-response";
+import { requirePagePermission } from "@/lib/auth/guards";
 import { getBannerById } from "@/lib/services/banner.service";
 import { bannerIdSchema } from "@/lib/validations/banner";
 
@@ -11,6 +12,7 @@ type EditBannerPageProps = {
 };
 
 export default async function EditBannerPage({ params }: EditBannerPageProps) {
+  await requirePagePermission("banners.manage");
   const { id } = await params;
   const bannerId = bannerIdSchema.parse(id);
   const banner = await getBannerById(bannerId).catch((error) => {

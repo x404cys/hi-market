@@ -1,17 +1,23 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { AuthenticatedAdmin } from "@/lib/auth/session-types";
+import { userRoleLabels } from "@/lib/auth/role-labels";
+import type { Permission } from "@/lib/auth/permissions";
 import {
   Boxes,
   ClipboardList,
   GalleryHorizontal,
   Home,
   Layers3,
+  LogOut,
   Tags,
   Settings,
+  UserCog,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const navItems = [
   {
@@ -19,32 +25,57 @@ const navItems = [
     label: "لوحة التحكم",
     icon: Home,
     exact: true,
+    permission: "dashboard.view",
   },
   {
     href: "/dashboard/orders",
     label: "الطلبات",
     icon: ClipboardList,
+    permission: "orders.read",
   },
   {
     href: "/dashboard/products",
     label: "المنتجات",
     icon: Boxes,
+    permission: "products.read",
   },
   {
     href: "/dashboard/categories",
     label: "الأصناف",
     icon: Tags,
+    permission: "categories.read",
   },
   {
     href: "/dashboard/banners",
     label: "البنرات",
     icon: GalleryHorizontal,
+    permission: "banners.read",
   },
-   
-] as const;
+  {
+    href: "/dashboard/users",
+    label: "المستخدمون",
+    icon: UserCog,
+    permission: "users.read",
+  },
+] satisfies Array<{
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  permission: Permission;
+}>;
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  currentUser,
+}: {
+  children: React.ReactNode;
+  currentUser: AuthenticatedAdmin;
+}) {
   const pathname = usePathname();
+  const allowedNavItems = navItems.filter((item) =>
+    currentUser.permissions.includes(item.permission),
+  );
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8fafc] text-slate-950">
@@ -56,12 +87,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-bold">إدارة المتجر</p>
-             </div>
+              <p className="text-xs text-slate-500">لوحة الموظفين</p>
+            </div>
           </div>
 
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {navItems.map((item) => {
-              const isActive = "exact" in item && item.exact
+            {allowedNavItems.map((item) => {
+              const isActive = item.exact
                 ? pathname === item.href
                 : pathname.startsWith(item.href.split("?")[0]);
 
@@ -82,6 +114,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="border-t border-slate-100 p-3">
+            <div className="mb-2 rounded-md bg-slate-50 px-3 py-2">
+              <p className="truncate text-sm font-semibold text-slate-950">
+                {currentUser.name}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {userRoleLabels[currentUser.role]}
+              </p>
+            </div>
             <Link
               href="/"
               className="flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
@@ -89,6 +129,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Settings className="size-4" />
               عرض المتجر
             </Link>
+            <button
+              type="button"
+              onClick={() => void signOut({ callbackUrl: "/login" })}
+              className="mt-1 flex h-9 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            >
+              <LogOut className="size-4" />
+              تسجيل الخروج
+            </button>
           </div>
         </div>
       </aside>
@@ -98,8 +146,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           
             <nav className="flex items-center gap-1 lg:hidden">
-              {navItems.slice(0, 4).map((item) => {
-                const isActive = "exact" in item && item.exact
+              {allowedNavItems.slice(0, 5).map((item) => {
+                const isActive = item.exact
                   ? pathname === item.href
                   : pathname.startsWith(item.href);
 
@@ -118,6 +166,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </nav>
+            <div className="flex items-center gap-2">
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-semibold text-slate-950">
+                  {currentUser.name}
+                </p>
+                <p className="text-xs text-slate-500">{userRoleLabels[currentUser.role]}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void signOut({ callbackUrl: "/login" })}
+                className="flex size-9 items-center justify-center rounded-md text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                aria-label="تسجيل الخروج"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
           </div>
         </header>
         {children}

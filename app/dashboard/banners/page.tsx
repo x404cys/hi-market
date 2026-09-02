@@ -10,11 +10,14 @@ import {
 import { BannerStatusBadge } from "@/components/dashboard/banners/banner-status-badge";
 import { formatBannerDate, formatBannerPeriod } from "@/lib/banners/banner-format";
 import type { BannerDto } from "@/lib/banners/banner-types";
+import { requirePagePermission } from "@/lib/auth/guards";
 import { listBanners } from "@/lib/services/banner.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function BannersPage() {
+  const user = await requirePagePermission("banners.read");
+  const canManage = user.permissions.includes("banners.manage");
   const result = await listBanners().catch(() => null);
 
   if (!result) {
@@ -48,12 +51,14 @@ export default async function BannersPage() {
               إدارة البنرات والعروض الظاهرة في واجهة المتجر.
             </p>
           </div>
-          <Button asChild className="bg-slate-950 text-white hover:bg-slate-900">
-            <Link href="/dashboard/banners/new">
-              <Plus className="size-4" />
-              إضافة بنر
-            </Link>
-          </Button>
+          {canManage && (
+            <Button asChild className="bg-slate-950 text-white hover:bg-slate-900">
+              <Link href="/dashboard/banners/new">
+                <Plus className="size-4" />
+                إضافة بنر
+              </Link>
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -64,7 +69,7 @@ export default async function BannersPage() {
         </section>
 
         {banners.length === 0 ? (
-          <EmptyBannersState />
+          <EmptyBannersState canManage={canManage} />
         ) : (
           <>
             <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
@@ -100,6 +105,7 @@ export default async function BannersPage() {
                           <BannerQuickActiveToggle
                             bannerId={banner.id}
                             isActive={banner.isActive}
+                            canManage={canManage}
                           />
                         </div>
                       </td>
@@ -113,7 +119,7 @@ export default async function BannersPage() {
                         {formatBannerDate(banner.updatedAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <BannerRowActions banner={banner} />
+                        <BannerRowActions banner={banner} canManage={canManage} />
                       </td>
                     </tr>
                   ))}
@@ -144,8 +150,9 @@ export default async function BannersPage() {
                     <BannerQuickActiveToggle
                       bannerId={banner.id}
                       isActive={banner.isActive}
+                      canManage={canManage}
                     />
-                    <BannerRowActions banner={banner} />
+                    <BannerRowActions banner={banner} canManage={canManage} />
                   </div>
                 </article>
               ))}
@@ -192,7 +199,7 @@ function BannerThumb({ banner, mobile }: { banner: BannerDto; mobile?: boolean }
   );
 }
 
-function EmptyBannersState() {
+function EmptyBannersState({ canManage }: { canManage: boolean }) {
   return (
     <Card className="items-center rounded-lg border-slate-200 px-5 py-12 text-center shadow-none">
       <ImageIcon className="size-10 text-slate-400" />
@@ -200,12 +207,14 @@ function EmptyBannersState() {
       <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
         أضف أول بنر لعرض العروض والإعلانات في واجهة المتجر.
       </p>
-      <Button asChild className="mt-5 bg-slate-950 text-white hover:bg-slate-900">
-        <Link href="/dashboard/banners/new">
-          <Plus className="size-4" />
-          إضافة بنر
-        </Link>
-      </Button>
+      {canManage && (
+        <Button asChild className="mt-5 bg-slate-950 text-white hover:bg-slate-900">
+          <Link href="/dashboard/banners/new">
+            <Plus className="size-4" />
+            إضافة بنر
+          </Link>
+        </Button>
+      )}
     </Card>
   );
 }

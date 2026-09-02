@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api-response";
 import { CategoryForm } from "@/components/dashboard/categories/category-form";
+import { requirePagePermission } from "@/lib/auth/guards";
 import {
   getCategoryById,
   listDashboardCategories,
@@ -16,6 +17,7 @@ type EditCategoryPageProps = {
 export const dynamic = "force-dynamic";
 
 export default async function EditCategoryPage({ params }: EditCategoryPageProps) {
+  await requirePagePermission("categories.manage");
   const { id } = await params;
   const categoryId = categoryIdSchema.parse(id);
   const [category, parentCategories] = await Promise.all([

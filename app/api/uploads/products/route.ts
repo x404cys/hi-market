@@ -7,12 +7,14 @@ import {
 } from "@/lib/api-response";
 import { isValidProductImageKey } from "@/lib/r2-utils";
 import { deleteProductImageSchema } from "@/lib/validations/product-upload";
+import { requireAnyPermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAnyPermission(["products.create", "products.update", "products.delete"]);
     const body = await readJsonBody(request);
     const parsed = deleteProductImageSchema.safeParse(body);
 

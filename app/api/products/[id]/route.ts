@@ -8,6 +8,7 @@ import {
   productIdSchema,
   updateProductSchema,
 } from "@/lib/validations/product";
+import { requirePermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 type ProductRouteContext = {
@@ -20,6 +21,7 @@ export const runtime = "nodejs";
 
 export async function GET(_request: NextRequest, context: ProductRouteContext) {
   try {
+    await requirePermission("products.read");
     const { id } = await context.params;
     const productId = productIdSchema.parse(id);
     const product = await getProduct(productId);
@@ -32,6 +34,7 @@ export async function GET(_request: NextRequest, context: ProductRouteContext) {
 
 export async function PATCH(request: NextRequest, context: ProductRouteContext) {
   try {
+    await requirePermission("products.update");
     const { id } = await context.params;
     const productId = productIdSchema.parse(id);
     const body = await readJsonBody(request);
@@ -49,6 +52,7 @@ export async function DELETE(
   context: ProductRouteContext,
 ) {
   try {
+    await requirePermission("products.delete");
     const { id } = await context.params;
     const productId = productIdSchema.parse(id);
     const product = await archiveProduct(productId);

@@ -5,7 +5,7 @@ import type { StoreBrand, StoreCategory } from "@/features/catalog/types";
 import type { StorefrontFilters } from "@/features/catalog/filters";
 import { useCartSummary } from "@/features/cart/store";
 import { useFavoritesSummary } from "@/features/favorites/store";
-import { Heart, MapPin, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 

@@ -7,6 +7,7 @@ import {
   createBrandOption,
   listBrandOptions,
 } from "@/lib/services/catalog-options.service";
+import { requirePermission } from "@/lib/auth/guards";
 import { quickCreateBrandSchema } from "@/lib/validations/catalog";
 import type { NextRequest } from "next/server";
 
@@ -24,6 +25,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission("brands.manage");
     const body = await readJsonBody(request);
     const input = quickCreateBrandSchema.parse(body);
     const brand = await createBrandOption(input);

@@ -15,6 +15,7 @@ import {
   categoryQuerySchema,
   createCategorySchema,
 } from "@/lib/validations/category";
+import { requirePermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -22,6 +23,7 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     if (request.nextUrl.searchParams.get("scope") === "dashboard") {
+      await requirePermission("categories.read");
       const query = categoryQuerySchema.parse({
         search: request.nextUrl.searchParams.get("search") ?? undefined,
       });
@@ -40,6 +42,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission("categories.manage");
     const body = await readJsonBody(request);
     const input = createCategorySchema.parse(body);
     const category = await createCategory(input);

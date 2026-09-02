@@ -7,12 +7,14 @@ import {
 } from "@/lib/api-response";
 import { MAX_PRODUCT_IMAGE_SIZE_BYTES } from "@/lib/r2-utils";
 import { productImagePresignSchema } from "@/lib/validations/product-upload";
+import { requireAnyPermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAnyPermission(["products.create", "products.update"]);
     const body = await readJsonBody(request);
 
     const parsed =

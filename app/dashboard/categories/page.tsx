@@ -15,6 +15,7 @@ import {
   getCategoryStatus,
 } from "@/lib/categories/category-format";
 import type { CategoryDto } from "@/lib/categories/category-types";
+import { requirePagePermission } from "@/lib/auth/guards";
 import { listDashboardCategories } from "@/lib/services/category.service";
 import { categoryQuerySchema } from "@/lib/validations/category";
 
@@ -33,6 +34,8 @@ export default async function DashboardCategoriesPage({
   const query = categoryQuerySchema.parse({
     search: params.search ?? undefined,
   });
+  const user = await requirePagePermission("categories.read");
+  const canManage = user.permissions.includes("categories.manage");
   const result = await listDashboardCategories(query).catch(() => null);
 
   if (!result) {
@@ -67,12 +70,14 @@ export default async function DashboardCategoriesPage({
               إدارة أصناف المنتجات وطريقة ظهورها في المتجر.
             </p>
           </div>
-          <Button asChild className="bg-slate-950 text-white hover:bg-slate-900">
-            <Link href="/dashboard/categories/new">
-              <Plus className="size-4" />
-              إضافة صنف
-            </Link>
-          </Button>
+          {canManage && (
+            <Button asChild className="bg-slate-950 text-white hover:bg-slate-900">
+              <Link href="/dashboard/categories/new">
+                <Plus className="size-4" />
+                إضافة صنف
+              </Link>
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -93,7 +98,7 @@ export default async function DashboardCategoriesPage({
         </form>
 
         {categories.length === 0 ? (
-          <EmptyCategoriesState hasSearch={hasSearch} />
+          <EmptyCategoriesState hasSearch={hasSearch} canManage={canManage} />
         ) : (
           <>
             <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
@@ -136,6 +141,7 @@ export default async function DashboardCategoriesPage({
                           <CategoryQuickActiveToggle
                             categoryId={category.id}
                             isActive={category.isActive}
+                            canManage={canManage}
                           />
                         </div>
                       </td>
@@ -146,7 +152,7 @@ export default async function DashboardCategoriesPage({
                         {formatCategoryDate(category.updatedAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <CategoryRowActions category={category} />
+                        <CategoryRowActions category={category} canManage={canManage} />
                       </td>
                     </tr>
                   ))}
@@ -181,8 +187,9 @@ export default async function DashboardCategoriesPage({
                         <CategoryQuickActiveToggle
                           categoryId={category.id}
                           isActive={category.isActive}
+                          canManage={canManage}
                         />
-                        <CategoryRowActions category={category} />
+                        <CategoryRowActions category={category} canManage={canManage} />
                       </div>
                     </div>
                   </div>
@@ -247,7 +254,13 @@ function CategoryStatusBadge({ category }: { category: CategoryDto }) {
   );
 }
 
-function EmptyCategoriesState({ hasSearch }: { hasSearch: boolean }) {
+function EmptyCategoriesState({
+  hasSearch,
+  canManage,
+}: {
+  hasSearch: boolean;
+  canManage: boolean;
+}) {
   return (
     <Card className="items-center rounded-lg border-slate-200 px-5 py-12 text-center shadow-none">
       <ImageIcon className="size-10 text-slate-400" />
@@ -259,7 +272,7 @@ function EmptyCategoriesState({ hasSearch }: { hasSearch: boolean }) {
           ? "جرّب تغيير عبارة البحث."
           : "أضف أول صنف مع صورة واضحة ليظهر في واجهة المتجر."}
       </p>
-      {!hasSearch && (
+      {!hasSearch && canManage && (
         <Button asChild className="mt-5 bg-slate-950 text-white hover:bg-slate-900">
           <Link href="/dashboard/categories/new">
             <Plus className="size-4" />

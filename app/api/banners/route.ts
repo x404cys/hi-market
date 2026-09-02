@@ -9,12 +9,14 @@ import {
   readJsonBody,
   successResponse,
 } from "@/lib/api-response";
+import { requirePermission } from "@/lib/auth/guards";
 import { createBannerSchema } from "@/lib/validations/banner";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
+    await requirePermission("banners.read");
     const result = await listBanners();
 
     return successResponse(result);
@@ -28,6 +30,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission("banners.manage");
     const body = await readJsonBody(request);
     const input = createBannerSchema.parse(body);
     const banner = await createBanner(input);

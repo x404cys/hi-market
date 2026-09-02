@@ -23,9 +23,11 @@ import type { BannerDto } from "@/lib/banners/banner-types";
 export function BannerQuickActiveToggle({
   bannerId,
   isActive,
+  canManage = true,
 }: {
   bannerId: string;
   isActive: boolean;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [checked, setChecked] = useState(isActive);
@@ -72,7 +74,7 @@ export function BannerQuickActiveToggle({
       <Switch
         checked={checked}
         onCheckedChange={updateActive}
-        disabled={isSaving}
+        disabled={isSaving || !canManage}
         aria-label="عرض البنر في المتجر"
       />
       {isSaving && <Loader2 className="size-3.5 animate-spin text-slate-400" />}
@@ -83,8 +85,10 @@ export function BannerQuickActiveToggle({
 
 export function BannerRowActions({
   banner,
+  canManage = true,
 }: {
   banner: Pick<BannerDto, "id" | "link" | "title">;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -119,51 +123,57 @@ export function BannerRowActions({
     await navigator.clipboard?.writeText(banner.link);
   }
 
+  if (!canManage && !banner.link) return null;
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button asChild variant="outline" size="sm">
-        <Link href={`/dashboard/banners/${banner.id}/edit`}>
-          <Pencil className="size-3.5" />
-          تعديل
-        </Link>
-      </Button>
+      {canManage && (
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/banners/${banner.id}/edit`}>
+            <Pencil className="size-3.5" />
+            تعديل
+          </Link>
+        </Button>
+      )}
       {banner.link && (
         <Button type="button" variant="outline" size="sm" onClick={copyLink}>
           <Copy className="size-3.5" />
           نسخ الرابط
         </Button>
       )}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button type="button" variant="destructive" size="sm">
-            <Trash2 className="size-3.5" />
-            حذف
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent dir="rtl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف البنر؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              سيتم حذف هذا البنر من لوحة التحكم والمتجر.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                void deleteBanner();
-              }}
-              disabled={isDeleting}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {isDeleting && <Loader2 className="size-4 animate-spin" />}
+      {canManage && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button type="button" variant="destructive" size="sm">
+              <Trash2 className="size-3.5" />
               حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent dir="rtl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف البنر؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم حذف هذا البنر من لوحة التحكم والمتجر.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  void deleteBanner();
+                }}
+                disabled={isDeleting}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                {isDeleting && <Loader2 className="size-4 animate-spin" />}
+                حذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

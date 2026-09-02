@@ -22,10 +22,14 @@ export function OrderStatusControl({
   orderId,
   status,
   compact = false,
+  canUpdateStatus = true,
+  canCancel = true,
 }: {
   orderId: string;
   status: OrderStatus;
   compact?: boolean;
+  canUpdateStatus?: boolean;
+  canCancel?: boolean;
 }) {
   const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(status);
@@ -34,8 +38,14 @@ export function OrderStatusControl({
   const [error, setError] = useState<string | null>(null);
 
   const allowed = useMemo(
-    () => new Set<OrderStatus>([status, ...nextStatuses[status]]),
-    [status],
+    () =>
+      new Set<OrderStatus>([
+        status,
+        ...nextStatuses[status].filter((item) =>
+          item === "CANCELLED" ? canCancel : canUpdateStatus,
+        ),
+      ]),
+    [canCancel, canUpdateStatus, status],
   );
 
   async function updateStatus(nextStatus: OrderStatus) {
@@ -92,7 +102,7 @@ export function OrderStatusControl({
       <div className="flex items-center gap-2">
         <select
           value={selectedStatus}
-          disabled={isUpdating || nextStatuses[status].length === 0}
+          disabled={isUpdating || allowed.size <= 1}
           onChange={(event) => updateStatus(event.target.value as OrderStatus)}
           className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
         >
@@ -118,10 +128,14 @@ export function OrderStatusControl({
 export function QuickNextStatusButton({
   orderId,
   status,
+  canUpdateStatus = true,
 }: {
   orderId: string;
   status: OrderStatus;
+  canUpdateStatus?: boolean;
 }) {
+  if (!canUpdateStatus) return null;
+
   const next = nextStatuses[status].find((item) => item !== "CANCELLED");
 
   if (!next) return null;

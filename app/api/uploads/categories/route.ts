@@ -7,12 +7,14 @@ import {
 } from "@/lib/api-response";
 import { isValidCategoryImageKey } from "@/lib/r2-utils";
 import { deleteCategoryImageSchema } from "@/lib/validations/product-upload";
+import { requirePermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requirePermission("categories.manage");
     const body = await readJsonBody(request);
     const parsed = deleteCategoryImageSchema.safeParse(body);
 

@@ -7,12 +7,14 @@ import {
 } from "@/lib/api-response";
 import { MAX_BANNER_IMAGE_SIZE_BYTES } from "@/lib/r2-utils";
 import { bannerImagePresignSchema } from "@/lib/validations/product-upload";
+import { requirePermission } from "@/lib/auth/guards";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission("banners.manage");
     const body = await readJsonBody(request);
     const parsed = bannerImagePresignSchema.safeParse(body);
 

@@ -14,6 +14,7 @@ import {
 } from "@/lib/orders/order-format";
 import type { OrderListItemDto } from "@/lib/orders/order-types";
 import { formatIqd } from "@/lib/products/product-format";
+import { requirePagePermission } from "@/lib/auth/guards";
 import { listActiveDeliveryZones } from "@/lib/services/delivery-zone.service";
 import { listOrders } from "@/lib/services/order.service";
 import { orderQuerySchema } from "@/lib/validations/order";
@@ -28,6 +29,9 @@ export default async function OrdersPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const user = await requirePagePermission("orders.read");
+  const canUpdateStatus = user.permissions.includes("orders.updateStatus");
+  const canCancel = user.permissions.includes("orders.cancel");
   const query = parseOrderQuery(params);
   const [ordersResult, zones] = await Promise.all([
     listOrders(query),
@@ -130,6 +134,8 @@ export default async function OrdersPage({
                                 orderId={order.id}
                                 status={order.status}
                                 compact
+                                canUpdateStatus={canUpdateStatus}
+                                canCancel={canCancel}
                               />
                             </div>
                           </td>
@@ -151,7 +157,12 @@ export default async function OrdersPage({
 
                 <div className="divide-y divide-slate-100 lg:hidden">
                   {ordersResult.data.map((order) => (
-                    <MobileOrderCard key={order.id} order={order} />
+                    <MobileOrderCard
+                      key={order.id}
+                      order={order}
+                      canUpdateStatus={canUpdateStatus}
+                      canCancel={canCancel}
+                    />
                   ))}
                 </div>
               </>
@@ -228,7 +239,15 @@ function TableHeader({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-3 text-right font-medium">{children}</th>;
 }
 
-function MobileOrderCard({ order }: { order: OrderListItemDto }) {
+function MobileOrderCard({
+  order,
+  canUpdateStatus,
+  canCancel,
+}: {
+  order: OrderListItemDto;
+  canUpdateStatus: boolean;
+  canCancel: boolean;
+}) {
   return (
     <article className="p-4">
       <div className="flex items-start justify-between gap-3">
@@ -249,7 +268,13 @@ function MobileOrderCard({ order }: { order: OrderListItemDto }) {
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <OrderStatusControl orderId={order.id} status={order.status} compact />
+        <OrderStatusControl
+          orderId={order.id}
+          status={order.status}
+          compact
+          canUpdateStatus={canUpdateStatus}
+          canCancel={canCancel}
+        />
         <OrderActionsMenu orderId={order.id} customerPhone={order.customerPhone} />
       </div>
     </article>

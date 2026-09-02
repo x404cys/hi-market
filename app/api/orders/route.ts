@@ -10,6 +10,7 @@ import {
   sanitizeForDebug,
 } from "@/lib/debug/server-debug";
 import { createGuestOrder, listOrders } from "@/lib/services/order.service";
+import { requirePermission } from "@/lib/auth/guards";
 import { createGuestOrderSchema } from "@/lib/validations/checkout";
 import { orderQuerySchema } from "@/lib/validations/order";
 import type { NextRequest } from "next/server";
@@ -18,6 +19,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
+    await requirePermission("orders.read");
     const searchParams = request.nextUrl.searchParams;
     const query = orderQuerySchema.parse({
       page: searchParams.get("page") ?? undefined,

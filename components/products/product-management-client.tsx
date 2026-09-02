@@ -81,7 +81,15 @@ const emptySummary: ProductSummary = {
   outOfStockProducts: 0,
 };
 
-export function ProductManagementClient() {
+export function ProductManagementClient({
+  canCreate,
+  canUpdate,
+  canDelete,
+}: {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -308,12 +316,14 @@ export function ProductManagementClient() {
             <h1 className="text-2xl font-semibold tracking-normal text-slate-950">المنتجات</h1>
             <p className="mt-1 text-sm text-slate-500">إدارة منتجات المتجر والأسعار والمخزون.</p>
           </div>
-          <Button asChild className="h-9 gap-2 self-start rounded-md px-3">
-            <Link href="/dashboard/products/new">
-              <Plus className="size-4" />
-              إضافة منتج
-            </Link>
-          </Button>
+          {canCreate && (
+            <Button asChild className="h-9 gap-2 self-start rounded-md px-3">
+              <Link href="/dashboard/products/new">
+                <Plus className="size-4" />
+                إضافة منتج
+              </Link>
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -443,7 +453,7 @@ export function ProductManagementClient() {
             <StateMessage
               title="لا توجد منتجات بعد"
               description="ابدأ بإضافة أول منتج إلى المتجر."
-              href="/dashboard/products/new"
+              href={canCreate ? "/dashboard/products/new" : undefined}
               actionLabel="إضافة منتج"
             />
           )}
@@ -502,6 +512,8 @@ export function ProductManagementClient() {
                             openMenuId={openMenuId}
                             setOpenMenuId={setOpenMenuId}
                             setProductToDelete={setProductToDelete}
+                            canUpdate={canUpdate}
+                            canDelete={canDelete}
                           />
                         </td>
                       </tr>
@@ -518,6 +530,8 @@ export function ProductManagementClient() {
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
                     setProductToDelete={setProductToDelete}
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
                   />
                 ))}
               </div>
@@ -728,13 +742,19 @@ function RowActions({
   openMenuId,
   setOpenMenuId,
   setProductToDelete,
+  canUpdate,
+  canDelete,
 }: {
   product: ProductDto;
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   setProductToDelete: (product: ProductDto) => void;
+  canUpdate: boolean;
+  canDelete: boolean;
 }) {
   const isOpen = openMenuId === product.id;
+
+  if (!canUpdate && !canDelete) return null;
 
   return (
     <div className="relative flex justify-end">
@@ -750,21 +770,25 @@ function RowActions({
       </Button>
       {isOpen && (
         <div className="absolute left-0 top-9 z-20 w-36 overflow-hidden rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg">
-          <Link
-            href={`/dashboard/products/${product.id}/edit`}
-            className="flex items-center gap-2 rounded px-2 py-2 text-slate-700 hover:bg-slate-50"
-          >
-            <Pencil className="size-4" />
-            تعديل
-          </Link>
-          <button
-            type="button"
-            onClick={() => setProductToDelete(product)}
-            className="flex w-full items-center gap-2 rounded px-2 py-2 text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="size-4" />
-            حذف
-          </button>
+          {canUpdate && (
+            <Link
+              href={`/dashboard/products/${product.id}/edit`}
+              className="flex items-center gap-2 rounded px-2 py-2 text-slate-700 hover:bg-slate-50"
+            >
+              <Pencil className="size-4" />
+              تعديل
+            </Link>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => setProductToDelete(product)}
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="size-4" />
+              حذف
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -776,11 +800,15 @@ function MobileProductRow({
   openMenuId,
   setOpenMenuId,
   setProductToDelete,
+  canUpdate,
+  canDelete,
 }: {
   product: ProductDto;
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   setProductToDelete: (product: ProductDto) => void;
+  canUpdate: boolean;
+  canDelete: boolean;
 }) {
   return (
     <div className="p-4">
@@ -791,6 +819,8 @@ function MobileProductRow({
           openMenuId={openMenuId}
           setOpenMenuId={setOpenMenuId}
           setProductToDelete={setProductToDelete}
+          canUpdate={canUpdate}
+          canDelete={canDelete}
         />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">

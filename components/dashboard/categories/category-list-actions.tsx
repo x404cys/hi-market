@@ -23,9 +23,11 @@ import type { ApiErrorResponse, ApiSuccess } from "@/lib/products/product-types"
 export function CategoryQuickActiveToggle({
   categoryId,
   isActive,
+  canManage = true,
 }: {
   categoryId: string;
   isActive: boolean;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [checked, setChecked] = useState(isActive);
@@ -72,7 +74,7 @@ export function CategoryQuickActiveToggle({
       <Switch
         checked={checked}
         onCheckedChange={updateActive}
-        disabled={isSaving}
+        disabled={isSaving || !canManage}
         aria-label="عرض الصنف في المتجر"
       />
       {isSaving && <Loader2 className="size-3.5 animate-spin text-slate-400" />}
@@ -83,12 +85,16 @@ export function CategoryQuickActiveToggle({
 
 export function CategoryRowActions({
   category,
+  canManage = true,
 }: {
   category: Pick<CategoryDto, "id" | "name" | "productCount">;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!canManage) return null;
 
   async function deleteCategory() {
     setIsDeleting(true);

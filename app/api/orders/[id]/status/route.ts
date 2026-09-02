@@ -4,6 +4,7 @@ import {
   successResponse,
 } from "@/lib/api-response";
 import { updateOrderStatus } from "@/lib/services/order.service";
+import { requirePermission } from "@/lib/auth/guards";
 import {
   orderIdSchema,
   updateOrderStatusSchema,
@@ -27,6 +28,9 @@ export async function PATCH(
     const orderId = orderIdSchema.parse(id);
     const body = await readJsonBody(request);
     const input = updateOrderStatusSchema.parse(body);
+    await requirePermission(
+      input.status === "CANCELLED" ? "orders.cancel" : "orders.updateStatus",
+    );
     const order = await updateOrderStatus(orderId, input);
 
     return successResponse(order);

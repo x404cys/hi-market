@@ -6,6 +6,7 @@ import { CategoriesSection } from "@/components/store/home/categories-section";
 import { HomeHeroBanner } from "@/components/store/home/home-hero-banner";
 import { EmptyState } from "@/components/store/shared/empty-state";
 import type { StoreCategory, StoreProduct } from "@/features/catalog/types";
+import { STORE_PRODUCT_PAGE_SIZE } from "@/features/catalog/constants";
 import {
   hasStorefrontFilters,
   normalizeStorefrontFilters,
@@ -15,7 +16,7 @@ import {
   listCategoryOptions,
 } from "@/lib/services/catalog-options.service";
 import { getActiveHeroBanner } from "@/lib/services/banner.service";
-import { listStoreProducts } from "@/lib/services/product.service";
+import { getStoreProducts } from "@/lib/services/product.service";
 
 type HomePageProps = {
   searchParams: Promise<{
@@ -37,8 +38,8 @@ export default async function Page({ searchParams }: HomePageProps) {
     await Promise.allSettled([
     listCategoryOptions(),
     listBrandOptions(),
-    listStoreProducts({
-      limit: hasStorefrontFilters(filters) ? 30 : 10,
+    getStoreProducts({
+      limit: STORE_PRODUCT_PAGE_SIZE,
       search: filters.search,
       categorySlug: filters.category,
       brandSlug: filters.brand,
@@ -52,7 +53,14 @@ export default async function Page({ searchParams }: HomePageProps) {
     categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
   const brands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
   const products: StoreProduct[] =
-    productsResult.status === "fulfilled" ? productsResult.value : [];
+    productsResult.status === "fulfilled" ? productsResult.value.items : [];
+  const productPagination =
+    productsResult.status === "fulfilled"
+      ? {
+          nextCursor: productsResult.value.nextCursor,
+          hasMore: productsResult.value.hasMore,
+        }
+      : { nextCursor: null, hasMore: false };
   const heroBanner = bannerResult.status === "fulfilled" ? bannerResult.value : null;
   const hasCatalogError =
     categoriesResult.status === "rejected" || productsResult.status === "rejected";
@@ -84,7 +92,7 @@ export default async function Page({ searchParams }: HomePageProps) {
               ? `نتائج البحث عن "${filters.search}"`
               : hasStorefrontFilters(filters)
                 ? "نتائج المنتجات"
-                : "أفضل العروض"
+                : "أحدث المنتجات"
           }
           emptyTitle={
             hasStorefrontFilters(filters)
@@ -97,6 +105,19 @@ export default async function Page({ searchParams }: HomePageProps) {
               : "ستظهر المنتجات النشطة هنا عند إضافتها من لوحة الإدارة."
           }
           clearFiltersHref={hasStorefrontFilters(filters) ? "/" : undefined}
+          pagination={{
+            nextCursor: productPagination.nextCursor,
+            hasMore: productPagination.hasMore,
+            query: {
+              limit: STORE_PRODUCT_PAGE_SIZE,
+              search: filters.search,
+              category: filters.category,
+              brand: filters.brand,
+              minPrice: filters.minPrice,
+              maxPrice: filters.maxPrice,
+              inStock: filters.inStock,
+            },
+          }}
         />
       </div>
       <BottomNavigation />

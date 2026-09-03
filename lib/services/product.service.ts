@@ -3,16 +3,27 @@ import {
   ProductStatus,
   StockMovementType,
 } from "@/app/generated/prisma";
+import { unstable_cache } from "next/cache";
 import { ApiError } from "@/lib/api-response";
 import { decimalToString, toPrismaDecimal } from "@/lib/decimal";
 import prisma from "@/lib/prisma";
+import {
+  STORE_PRODUCT_MAX_PAGE_SIZE,
+  STORE_PRODUCT_PAGE_SIZE,
+  STORE_PRODUCT_REVALIDATE_SECONDS,
+  STORE_PRODUCTS_CACHE_TAG,
+} from "@/features/catalog/constants";
 import type {
   CreateProductInput,
   ProductImageInput,
   ProductQueryInput,
   UpdateProductInput,
 } from "@/lib/validations/product";
-import type { ProductDto } from "@/lib/products/product-types";
+import type {
+  CursorPaginatedProducts,
+  ProductCardDto,
+  ProductDto,
+} from "@/lib/products/product-types";
 
 const productDetailSelect = {
   id: true,
@@ -75,6 +86,81 @@ const productDetailSelect = {
 type ProductDetail = Prisma.ProductGetPayload<{
   select: typeof productDetailSelect;
 }>;
+
+const productCardSelect = {
+  id: true,
+  categoryId: true,
+  brandId: true,
+  name: true,
+  slug: true,
+  price: true,
+  comparePrice: true,
+  unit: true,
+  unitValue: true,
+  isWeighted: true,
+  minOrderQty: true,
+  orderStep: true,
+  stock: true,
+  lowStockAt: true,
+  trackInventory: true,
+  allowBackorder: true,
+  image: true,
+  createdAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      image: true,
+      isActive: true,
+    },
+  },
+  brand: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+      isActive: true,
+    },
+  },
+} satisfies Prisma.ProductSelect;
+
+type ProductCard = Prisma.ProductGetPayload<{
+  select: typeof productCardSelect;
+}>;
+
+export type StoreProductSort = "newest" | "price-asc" | "price-desc";
+
+export type StoreProductQueryOptions = {
+  limit?: number;
+  cursor?: string;
+  search?: string;
+  categoryId?: string;
+  categorySlug?: string;
+  brandSlug?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  inStock?: boolean;
+  excludeProductId?: string;
+  ids?: string[];
+  sort?: StoreProductSort;
+};
+
+type NormalizedStoreProductQueryOptions = {
+  limit: number;
+  cursor: string | undefined;
+  search: string | undefined;
+  categoryId: string | undefined;
+  categorySlug: string | undefined;
+  brandSlug: string | undefined;
+  minPrice: string | undefined;
+  maxPrice: string | undefined;
+  inStock: boolean;
+  excludeProductId: string | undefined;
+  ids: string[] | undefined;
+  sort: StoreProductSort;
+};
 
 export async function createProduct(input: CreateProductInput) {
   await ensureRelationsExist(input.categoryId, input.brandId ?? null);
@@ -284,88 +370,176 @@ export async function getProduct(productId: string) {
 }
 
 export async function getStoreProductBySlug(slug: string) {
-  const product = await prisma.product.findFirst({
-    where: {
-      slug,
-      status: ProductStatus.ACTIVE,
-    },
-    select: productDetailSelect,
-  });
+  return unstable_cache(
+    async () => {
+      const product = await prisma.product.findFirst({
+        where: {
+          slug,
+          status: ProductStatus.ACTIVE,
+        },
+        select: productDetailSelect,
+      });
 
-  return product ? serializeProduct(product) : null;
+      return product ? serializeProduct(product) : null;
+    },
+    ["store-product-detail", slug],
+    {
+      revalidate: STORE_PRODUCT_REVALIDATE_SECONDS,
+      tags: [STORE_PRODUCTS_CACHE_TAG],
+    },
+  )();
 }
 
-export async function listStoreProducts(options?: {
-  limit?: number;
-  search?: string;
-  categoryId?: string;
-  categorySlug?: string;
-  brandSlug?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  inStock?: boolean;
-  excludeProductId?: string;
-}) {
-  const where: Prisma.ProductWhereInput = {
-    status: ProductStatus.ACTIVE,
-    ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
-    ...(options?.categorySlug
-      ? { category: { slug: options.categorySlug, isActive: true } }
-      : {}),
-    ...(options?.brandSlug
-      ? { brand: { slug: options.brandSlug, isActive: true } }
-      : {}),
-    ...(options?.excludeProductId ? { id: { not: options.excludeProductId } } : {}),
-  };
-  const search = options?.search?.trim();
-  const minPrice = normalizeStorePriceFilter(options?.minPrice);
-  const maxPrice = normalizeStorePriceFilter(options?.maxPrice);
+export async function getStoreProducts(
+  options: StoreProductQueryOptions = {},
+): Promise<CursorPaginatedProducts<ProductCardDto>> {
+  const normalizedOptions = normalizeStoreProductQueryOptions(options);
 
-  if (minPrice || maxPrice) {
-    where.price = {
-      ...(minPrice ? { gte: toPrismaDecimal(minPrice) } : {}),
-      ...(maxPrice ? { lte: toPrismaDecimal(maxPrice) } : {}),
-    };
-  }
+  return unstable_cache(
+    () => queryStoreProducts(normalizedOptions),
+    ["store-products-page", JSON.stringify(normalizedOptions)],
+    {
+      revalidate: STORE_PRODUCT_REVALIDATE_SECONDS,
+      tags: [STORE_PRODUCTS_CACHE_TAG],
+    },
+  )();
+}
 
-  if (options?.inStock) {
-    where.OR = [
-      ...(Array.isArray(where.OR) ? where.OR : []),
-      { trackInventory: false },
-      { allowBackorder: true },
-      { stock: { gt: 0 } },
-    ];
-  }
+export async function listStoreProducts(options?: StoreProductQueryOptions) {
+  const page = await getStoreProducts(options);
 
-  if (search) {
-    const searchFilters: Prisma.ProductWhereInput[] = [
-      { name: { contains: search, mode: "insensitive" } },
-      { sku: { contains: search, mode: "insensitive" } },
-      { barcode: { contains: search, mode: "insensitive" } },
-      { category: { name: { contains: search, mode: "insensitive" } } },
-      { brand: { name: { contains: search, mode: "insensitive" } } },
-    ];
+  return page.items;
+}
 
-    if (where.OR) {
-      where.AND = [{ OR: Array.isArray(where.OR) ? where.OR : [where.OR] }, { OR: searchFilters }];
-      delete where.OR;
-    } else {
-      where.OR = searchFilters;
-    }
-  }
-
+async function queryStoreProducts(
+  options: NormalizedStoreProductQueryOptions,
+): Promise<CursorPaginatedProducts<ProductCardDto>> {
   const products = await prisma.product.findMany({
-    where,
-    orderBy: [
-      { isFeatured: "desc" },
-      { sortOrder: "asc" },
-      { updatedAt: "desc" },
-    ],
-    take: options?.limit ?? 12,
-    select: productDetailSelect,
+    where: buildStoreProductWhere(options),
+    orderBy: getStoreProductOrderBy(options.sort),
+    ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+    take: options.limit + 1,
+    select: productCardSelect,
   });
+  const hasMore = products.length > options.limit;
+  const pageItems = hasMore ? products.slice(0, options.limit) : products;
 
-  return products.map(serializeProduct);
+  return {
+    items: pageItems.map(serializeProductCard),
+    nextCursor: hasMore ? pageItems.at(-1)?.id ?? null : null,
+    hasMore,
+    pageSize: options.limit,
+  };
+}
+
+function normalizeStoreProductQueryOptions(
+  options: StoreProductQueryOptions,
+): NormalizedStoreProductQueryOptions {
+  const limit = Math.min(
+    Math.max(Number(options.limit) || STORE_PRODUCT_PAGE_SIZE, 1),
+    STORE_PRODUCT_MAX_PAGE_SIZE,
+  );
+  const ids = options.ids
+    ?.map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  return {
+    limit,
+    cursor: cleanStoreText(options.cursor),
+    search: cleanStoreText(options.search),
+    categoryId: cleanStoreText(options.categoryId),
+    categorySlug: cleanStoreText(options.categorySlug),
+    brandSlug: cleanStoreText(options.brandSlug),
+    minPrice: normalizeStorePriceFilter(options.minPrice) ?? undefined,
+    maxPrice: normalizeStorePriceFilter(options.maxPrice) ?? undefined,
+    inStock: options.inStock === true,
+    excludeProductId: cleanStoreText(options.excludeProductId),
+    ids: ids && ids.length > 0 ? Array.from(new Set(ids)) : undefined,
+    sort: options.sort ?? "newest",
+  };
+}
+
+function buildStoreProductWhere(
+  options: ReturnType<typeof normalizeStoreProductQueryOptions>,
+) {
+  const andFilters: Prisma.ProductWhereInput[] = [
+    { status: ProductStatus.ACTIVE },
+  ];
+  const minPrice = normalizeStorePriceFilter(options.minPrice);
+  const maxPrice = normalizeStorePriceFilter(options.maxPrice);
+
+  if (options.ids?.length) andFilters.push({ id: { in: options.ids } });
+  if (options.categoryId) andFilters.push({ categoryId: options.categoryId });
+  if (options.categorySlug) {
+    andFilters.push({
+      category: { slug: options.categorySlug, isActive: true },
+    });
+  }
+  if (options.brandSlug) {
+    andFilters.push({ brand: { slug: options.brandSlug, isActive: true } });
+  }
+  if (options.excludeProductId) {
+    andFilters.push({ id: { not: options.excludeProductId } });
+  }
+  if (minPrice || maxPrice) {
+    andFilters.push({
+      price: {
+        ...(minPrice ? { gte: toPrismaDecimal(minPrice) } : {}),
+        ...(maxPrice ? { lte: toPrismaDecimal(maxPrice) } : {}),
+      },
+    });
+  }
+  if (options.inStock) {
+    andFilters.push({
+      OR: [
+        { trackInventory: false },
+        { allowBackorder: true },
+        { stock: { gt: 0 } },
+      ],
+    });
+  }
+  if (options.search) {
+    andFilters.push({
+      OR: [
+        { name: { contains: options.search, mode: "insensitive" } },
+        { sku: { contains: options.search, mode: "insensitive" } },
+        { barcode: { contains: options.search, mode: "insensitive" } },
+        { category: { name: { contains: options.search, mode: "insensitive" } } },
+        { brand: { name: { contains: options.search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  return { AND: andFilters } satisfies Prisma.ProductWhereInput;
+}
+
+function getStoreProductOrderBy(sort: StoreProductSort) {
+  if (sort === "price-asc") {
+    return [
+      { price: "asc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ] satisfies Prisma.ProductOrderByWithRelationInput[];
+  }
+
+  if (sort === "price-desc") {
+    return [
+      { price: "desc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ] satisfies Prisma.ProductOrderByWithRelationInput[];
+  }
+
+  return [
+    { createdAt: "desc" },
+    { id: "desc" },
+  ] satisfies Prisma.ProductOrderByWithRelationInput[];
+}
+
+function cleanStoreText(value: string | undefined) {
+  const text = value?.trim();
+
+  return text || undefined;
 }
 
 function normalizeStorePriceFilter(value: string | undefined) {
@@ -626,5 +800,19 @@ function serializeProduct(product: ProductDetail): ProductDto {
       ...image,
       createdAt: image.createdAt.toISOString(),
     })),
+  };
+}
+
+function serializeProductCard(product: ProductCard): ProductCardDto {
+  return {
+    ...product,
+    price: decimalToString(product.price) ?? "0",
+    comparePrice: decimalToString(product.comparePrice),
+    unitValue: decimalToString(product.unitValue),
+    minOrderQty: decimalToString(product.minOrderQty) ?? "1",
+    orderStep: decimalToString(product.orderStep) ?? "1",
+    stock: decimalToString(product.stock) ?? "0",
+    lowStockAt: decimalToString(product.lowStockAt) ?? "0",
+    createdAt: product.createdAt.toISOString(),
   };
 }

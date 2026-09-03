@@ -3,6 +3,7 @@ import { BottomNavigation } from "@/components/store/layout/bottom-navigation";
 import { StoreHeader } from "@/components/store/layout/store-header";
 import { ProductGrid } from "@/components/store/product/product-grid";
 import { EmptyState } from "@/components/store/shared/empty-state";
+import { STORE_PRODUCT_PAGE_SIZE } from "@/features/catalog/constants";
 import {
   hasStorefrontFilters,
   normalizeStorefrontFilters,
@@ -11,7 +12,7 @@ import {
   listBrandOptions,
   listCategoryOptions,
 } from "@/lib/services/catalog-options.service";
-import { listStoreProducts } from "@/lib/services/product.service";
+import { getStoreProducts } from "@/lib/services/product.service";
 import Link from "next/link";
 
 type ProductsPageProps = {
@@ -33,20 +34,28 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const [categoriesResult, brandsResult, productsResult] = await Promise.allSettled([
     listCategoryOptions(),
     listBrandOptions(),
-    listStoreProducts({
+    getStoreProducts({
       search: filters.search,
       categorySlug: filters.category,
       brandSlug: filters.brand,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
       inStock: filters.inStock,
-      limit: 30,
+      limit: STORE_PRODUCT_PAGE_SIZE,
     }),
   ]);
   const categories =
     categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
   const brands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
-  const products = productsResult.status === "fulfilled" ? productsResult.value : [];
+  const products =
+    productsResult.status === "fulfilled" ? productsResult.value.items : [];
+  const productPagination =
+    productsResult.status === "fulfilled"
+      ? {
+          nextCursor: productsResult.value.nextCursor,
+          hasMore: productsResult.value.hasMore,
+        }
+      : { nextCursor: null, hasMore: false };
   const hasError = productsResult.status === "rejected";
 
   return (
@@ -87,7 +96,22 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             )}
           </div>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid
+            products={products}
+            pagination={{
+              nextCursor: productPagination.nextCursor,
+              hasMore: productPagination.hasMore,
+              query: {
+                limit: STORE_PRODUCT_PAGE_SIZE,
+                search: filters.search,
+                category: filters.category,
+                brand: filters.brand,
+                minPrice: filters.minPrice,
+                maxPrice: filters.maxPrice,
+                inStock: filters.inStock,
+              },
+            }}
+          />
         )}
       </div>
       <BottomNavigation />

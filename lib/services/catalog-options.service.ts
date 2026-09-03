@@ -1,38 +1,60 @@
 import prisma from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 import { ApiError } from "@/lib/api-response";
+import {
+  STORE_BRANDS_CACHE_TAG,
+  STORE_CATEGORIES_CACHE_TAG,
+  STORE_PRODUCT_REVALIDATE_SECONDS,
+} from "@/features/catalog/constants";
 import type {
   QuickCreateBrandInput,
   QuickCreateCategoryInput,
 } from "@/lib/validations/catalog";
 
 export async function listCategoryOptions() {
-  return prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      parentId: true,
-      image: true,
+  return unstable_cache(
+    () =>
+      prisma.category.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          parentId: true,
+          image: true,
+        },
+      }),
+    ["store-category-options"],
+    {
+      revalidate: STORE_PRODUCT_REVALIDATE_SECONDS,
+      tags: [STORE_CATEGORIES_CACHE_TAG],
     },
-  });
+  )();
 }
 
 export async function getCategoryOptionBySlug(slug: string) {
-  return prisma.category.findFirst({
-    where: {
-      slug,
-      isActive: true,
+  return unstable_cache(
+    () =>
+      prisma.category.findFirst({
+        where: {
+          slug,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          parentId: true,
+          image: true,
+        },
+      }),
+    ["store-category-option", slug],
+    {
+      revalidate: STORE_PRODUCT_REVALIDATE_SECONDS,
+      tags: [STORE_CATEGORIES_CACHE_TAG],
     },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      parentId: true,
-      image: true,
-    },
-  });
+  )();
 }
 
 export async function createCategoryOption(input: QuickCreateCategoryInput) {
@@ -74,15 +96,23 @@ export async function createCategoryOption(input: QuickCreateCategoryInput) {
 }
 
 export async function listBrandOptions() {
-  return prisma.brand.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
+  return unstable_cache(
+    () =>
+      prisma.brand.findMany({
+        where: { isActive: true },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      }),
+    ["store-brand-options"],
+    {
+      revalidate: STORE_PRODUCT_REVALIDATE_SECONDS,
+      tags: [STORE_BRANDS_CACHE_TAG],
     },
-  });
+  )();
 }
 
 export async function createBrandOption(input: QuickCreateBrandInput) {

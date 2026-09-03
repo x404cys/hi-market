@@ -3,7 +3,7 @@ import { ProductDescription } from "@/components/store/product/product-descripti
 import { ProductImageGallery } from "@/components/store/product/product-image-gallery";
 import { ProductPrice } from "@/components/store/product/product-price";
 import { ProductPurchaseActions } from "@/components/store/product/product-purchase-actions";
-import type { StoreProduct } from "@/features/catalog/types";
+import type { StoreProductDetail } from "@/features/catalog/types";
 import { getDiscountPercent, getUnitText } from "@/features/catalog/utils";
 import { getStockLabel } from "@/lib/products/product-format";
 
@@ -11,7 +11,7 @@ export function ProductDetailContent({
   product,
   mode = "page",
 }: {
-  product: StoreProduct;
+  product: StoreProductDetail;
   mode?: "page" | "sheet";
 }) {
   const discount = getDiscountPercent(product);

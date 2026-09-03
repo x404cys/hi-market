@@ -3,7 +3,6 @@ import {
   readJsonBody,
   successResponse,
 } from "@/lib/api-response";
-import { revalidatePath } from "next/cache";
 import {
   listCategoryOptions,
 } from "@/lib/services/catalog-options.service";
@@ -11,6 +10,7 @@ import {
   createCategory,
   listDashboardCategories,
 } from "@/lib/services/category.service";
+import { revalidateStorefrontCategories } from "@/lib/services/storefront-cache.service";
 import {
   categoryQuerySchema,
   createCategorySchema,
@@ -47,9 +47,7 @@ export async function POST(request: NextRequest) {
     const input = createCategorySchema.parse(body);
     const category = await createCategory(input);
 
-    revalidatePath("/");
-    revalidatePath("/categories");
-    revalidatePath("/dashboard/categories");
+    revalidateStorefrontCategories([`/categories/${category.slug}`]);
 
     return successResponse(category, 201);
   } catch (error) {

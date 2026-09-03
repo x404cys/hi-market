@@ -8,7 +8,7 @@ import { FavoriteButton } from "@/components/store/product/favorite-button";
 import { ProductPrice } from "@/components/store/product/product-price";
 import { StoreProductImage } from "@/components/store/shared/product-image";
 import type { StoreProduct } from "@/features/catalog/types";
-import { getDiscountPercent, getUnitText } from "@/features/catalog/utils";
+import { getDiscountPercent, getUnitText, isNewProduct } from "@/features/catalog/utils";
 import {
   addProductToCart,
   getCartStepForProduct,
@@ -23,6 +23,7 @@ export function ProductCard({
   onOpenProduct?: (product: StoreProduct) => void;
 }) {
   const discount = getDiscountPercent(product);
+  const isNew = isNewProduct(product);
   const [added, setAdded] = useState(false);
   const cart = useCartState();
   const inCartQuantity =
@@ -48,10 +49,15 @@ export function ProductCard({
 
   return (
     <article className="relative overflow-hidden rounded-lg border border-[var(--store-border)] bg-white p-2.5 transition hover:border-emerald-200 hover:bg-slate-50/40">
-      <div className="absolute right-2 top-2 z-10">
+      <div className="absolute right-2 top-2 z-10 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1">
+        {isNew ? (
+          <span className="rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold leading-none text-[var(--store-primary-strong)] ring-1 ring-emerald-100">
+            جديد
+          </span>
+        ) : null}
         {discount ? (
           <span className="rounded-md bg-[var(--store-primary)] px-2 py-1 text-[10px] font-semibold leading-none text-white">
-            {discount.toLocaleString("ar-IQ")}% خصم
+            خصم {discount.toLocaleString("ar-IQ")}%
           </span>
         ) : null}
       </div>
@@ -66,6 +72,7 @@ export function ProductCard({
             src={product.image}
             alt={product.name}
             sizes="(min-width: 1280px) 220px, (min-width: 768px) 30vw, 45vw"
+            className="object-cover"
           />
         </div>
         <h3 className="mt-2 line-clamp-2 min-h-9 text-[13px] font-semibold leading-[18px] text-[var(--store-text)]">

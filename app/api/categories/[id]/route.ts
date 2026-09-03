@@ -1,10 +1,10 @@
-import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import {
   deleteCategory,
   getCategoryById,
   updateCategory,
 } from "@/lib/services/category.service";
+import { revalidateStorefrontCategories } from "@/lib/services/storefront-cache.service";
 import {
   handleRouteError,
   readJsonBody,
@@ -49,11 +49,7 @@ export async function PATCH(request: NextRequest, context: CategoryRouteContext)
     const input = updateCategorySchema.parse(body);
     const category = await updateCategory(categoryId, input);
 
-    revalidatePath("/");
-    revalidatePath("/categories");
-    revalidatePath(`/categories/${category.slug}`);
-    revalidatePath("/dashboard/categories");
-    revalidatePath(`/dashboard/categories/${categoryId}/edit`);
+    revalidateStorefrontCategories([`/categories/${category.slug}`]);
 
     return successResponse(category);
   } catch (error) {
@@ -71,9 +67,7 @@ export async function DELETE(_request: NextRequest, context: CategoryRouteContex
     const categoryId = categoryIdSchema.parse(id);
     const category = await deleteCategory(categoryId);
 
-    revalidatePath("/");
-    revalidatePath("/categories");
-    revalidatePath("/dashboard/categories");
+    revalidateStorefrontCategories([`/categories/${category.slug}`]);
 
     return successResponse(category);
   } catch (error) {

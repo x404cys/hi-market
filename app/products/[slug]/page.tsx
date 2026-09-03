@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { FavoriteButton } from "@/components/store/product/favorite-button";
 import { ProductDetailContent } from "@/components/store/product/product-detail-content";
 import { RelatedProducts } from "@/components/store/product/related-products";
-import type { StoreProduct } from "@/features/catalog/types";
+import type { StoreProduct, StoreProductDetail } from "@/features/catalog/types";
 import {
   getStoreProductBySlug,
   listRelatedStoreProducts,
@@ -21,7 +21,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   await connection();
 
   const { slug } = await params;
-  let product: StoreProduct | null = null;
+  let product: StoreProductDetail | null = null;
   let relatedProducts: StoreProduct[] = [];
   let hasDataError = false;
 

@@ -27,7 +27,7 @@ export default async function CategoriesPage() {
         ) : categories.length === 0 ? (
           <EmptyState title="لا توجد تصنيفات متاحة حالياً" />
         ) : (
-          <CategoriesSection categories={categories} />
+          <CategoriesSection categories={categories} maxItems={null} />
         )}
       </div>
       <BottomNavigation />

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { StoreProductImage } from "@/components/store/shared/product-image";
-import type { StoreProduct } from "@/features/catalog/types";
+import type { StoreProductDetail } from "@/features/catalog/types";
 import { getProductImages } from "@/features/catalog/utils";
 
 export function ProductImageGallery({
   product,
   compact = false,
 }: {
-  product: StoreProduct;
+  product: StoreProductDetail;
   compact?: boolean;
 }) {
   const images = getProductImages(product);

@@ -5,8 +5,10 @@ import { connection } from "next/server";
 import { BottomNavigation } from "@/components/store/layout/bottom-navigation";
 import { ProductGrid } from "@/components/store/product/product-grid";
 import { EmptyState } from "@/components/store/shared/empty-state";
+import { StoreCategoryImage } from "@/components/store/shared/category-image";
+import { STORE_PRODUCT_PAGE_SIZE } from "@/features/catalog/constants";
 import { getCategoryOptionBySlug } from "@/lib/services/catalog-options.service";
-import { listStoreProducts } from "@/lib/services/product.service";
+import { getStoreProducts } from "@/lib/services/product.service";
 
 type CategoryPageProps = {
   params: Promise<{
@@ -42,10 +44,15 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     );
   }
 
-  const products = await listStoreProducts({
+  const productsPage = await getStoreProducts({
     categoryId: category.id,
-    limit: 24,
-  }).catch(() => []);
+    limit: STORE_PRODUCT_PAGE_SIZE,
+  }).catch(() => ({
+    items: [],
+    nextCursor: null,
+    hasMore: false,
+    pageSize: STORE_PRODUCT_PAGE_SIZE,
+  }));
 
   return (
     <main
@@ -61,16 +68,36 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           >
             <ArrowRight className="size-4" />
           </Link>
+          {category.image && (
+            <div className="relative size-12 overflow-hidden rounded-lg border border-[var(--store-border)] bg-white">
+              <StoreCategoryImage
+                src={category.image}
+                alt={category.name}
+                sizes="48px"
+                className="object-cover"
+              />
+            </div>
+          )}
           <div>
             <p className="text-xs text-[var(--store-text-muted)]">التصنيف</p>
             <h1 className="text-xl font-semibold">{category.name}</h1>
           </div>
         </header>
 
-        {products.length === 0 ? (
+        {productsPage.items.length === 0 ? (
           <EmptyState title="لا توجد منتجات في هذا التصنيف حالياً" />
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid
+            products={productsPage.items}
+            pagination={{
+              nextCursor: productsPage.nextCursor,
+              hasMore: productsPage.hasMore,
+              query: {
+                limit: STORE_PRODUCT_PAGE_SIZE,
+                category: category.slug,
+              },
+            }}
+          />
         )}
       </div>
       <BottomNavigation />

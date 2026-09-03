@@ -8,6 +8,7 @@
     "start": "next start",
     "postinstall": "prisma generate",
     "create-owner": "tsx scripts/create-owner.ts",
+    "import:high-market-products": "tsx scripts/import-high-market-products.ts",
     "lint": "eslint",
     "migrate:r2-public-urls": "tsx scripts/migrate-r2-public-urls.ts"
   },

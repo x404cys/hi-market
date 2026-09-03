@@ -7,6 +7,7 @@ import {
   createBrandOption,
   listBrandOptions,
 } from "@/lib/services/catalog-options.service";
+import { revalidateStorefrontBrands } from "@/lib/services/storefront-cache.service";
 import { requirePermission } from "@/lib/auth/guards";
 import { quickCreateBrandSchema } from "@/lib/validations/catalog";
 import type { NextRequest } from "next/server";
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const body = await readJsonBody(request);
     const input = quickCreateBrandSchema.parse(body);
     const brand = await createBrandOption(input);
+    revalidateStorefrontBrands();
 
     return successResponse(brand, 201);
   } catch (error) {

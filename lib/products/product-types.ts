@@ -113,3 +113,34 @@ export type ProductDto = {
   } | null;
   images: ProductImageDto[];
 };
+
+export type ProductCardDto = Pick<
+  ProductDto,
+  | "id"
+  | "categoryId"
+  | "brandId"
+  | "name"
+  | "slug"
+  | "price"
+  | "comparePrice"
+  | "unit"
+  | "unitValue"
+  | "isWeighted"
+  | "minOrderQty"
+  | "orderStep"
+  | "stock"
+  | "lowStockAt"
+  | "trackInventory"
+  | "allowBackorder"
+  | "image"
+  | "createdAt"
+  | "category"
+  | "brand"
+>;
+
+export type CursorPaginatedProducts<T> = {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  pageSize: number;
+};

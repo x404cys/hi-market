@@ -241,6 +241,8 @@ model Product {
   @@index([categoryId])
   @@index([brandId])
   @@index([status])
+  @@index([status, createdAt, id])
+  @@index([categoryId, status, createdAt, id])
   @@index([isFeatured, status])
   @@index([name])
 }

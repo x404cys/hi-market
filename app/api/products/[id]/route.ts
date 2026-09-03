@@ -3,6 +3,7 @@ import {
   getProduct,
   updateProduct,
 } from "@/lib/services/product.service";
+import { revalidateStorefrontProducts } from "@/lib/services/storefront-cache.service";
 import { handleRouteError, readJsonBody, successResponse } from "@/lib/api-response";
 import {
   productIdSchema,
@@ -40,6 +41,10 @@ export async function PATCH(request: NextRequest, context: ProductRouteContext) 
     const body = await readJsonBody(request);
     const input = updateProductSchema.parse(body);
     const product = await updateProduct(productId, input);
+    revalidateStorefrontProducts([
+      `/products/${product.slug}`,
+      `/categories/${product.category.slug}`,
+    ]);
 
     return successResponse(product);
   } catch (error) {
@@ -56,6 +61,10 @@ export async function DELETE(
     const { id } = await context.params;
     const productId = productIdSchema.parse(id);
     const product = await archiveProduct(productId);
+    revalidateStorefrontProducts([
+      `/products/${product.slug}`,
+      `/categories/${product.category.slug}`,
+    ]);
 
     return successResponse(product);
   } catch (error) {

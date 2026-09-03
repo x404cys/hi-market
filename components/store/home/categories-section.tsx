@@ -7,11 +7,16 @@ export function CategoriesSection({
   categories,
   activeSlug = "",
   linkMode = "page",
+  maxItems = 12,
 }: {
   categories: StoreCategory[];
   activeSlug?: string;
   linkMode?: "page" | "filter";
+  maxItems?: number | null;
 }) {
+  const visibleCategories =
+    typeof maxItems === "number" ? categories.slice(0, maxItems) : categories;
+
   return (
     <section className="space-y-3">
       <SectionHeader title="التصنيفات" href="/categories" />
@@ -21,9 +26,10 @@ export function CategoriesSection({
           لا توجد تصنيفات متاحة حالياً.
         </div>
       ) : (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {categories.slice(0, 12).map((category) => {
+        <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {visibleCategories.map((category) => {
             const active = category.slug === activeSlug;
+
             const href =
               linkMode === "filter"
                 ? `/?category=${encodeURIComponent(category.slug)}`
@@ -33,21 +39,30 @@ export function CategoriesSection({
               <Link
                 key={category.id}
                 href={href}
-                className={`flex min-h-12 shrink-0 items-center gap-2 rounded-lg border px-3 transition focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-emerald-100 ${
-                  active
-                    ? "border-emerald-200 bg-[var(--store-primary-soft)] text-[var(--store-primary-strong)]"
-                    : "border-[var(--store-border)] bg-white text-[var(--store-text)] hover:border-emerald-200"
-                }`}
+                className="group flex w-[72px] shrink-0 flex-col items-center gap-2 text-center focus-visible:outline-none"
               >
-                <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg bg-[var(--store-primary-soft)] text-[var(--store-primary)]">
+                  <span
+                  className={`relative flex size-16 items-center justify-center overflow-hidden rounded-full border transition ${
+                    active
+                      ? "border-emerald-500 ring-2 ring-emerald-100"
+                      : "border-[var(--store-border)] group-hover:border-emerald-300"
+                  }`}
+                >
                   <StoreCategoryImage
                     src={category.image}
                     alt={category.name}
-                    sizes="36px"
+                    sizes="64px"
                     className="object-cover"
                   />
                 </span>
-                <span className="max-w-24 truncate text-xs font-medium">
+
+                 <span
+                  className={`w-full truncate text-xs font-medium transition ${
+                    active
+                      ? "text-[var(--store-primary-strong)]"
+                      : "text-[var(--store-text)]"
+                  }`}
+                >
                   {category.name}
                 </span>
               </Link>

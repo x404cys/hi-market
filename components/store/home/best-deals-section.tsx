@@ -3,6 +3,9 @@ import { EmptyState } from "@/components/store/shared/empty-state";
 import { SectionHeader } from "@/components/store/shared/section-header";
 import type { StoreProduct } from "@/features/catalog/types";
 import Link from "next/link";
+import type { ComponentProps } from "react";
+
+type ProductGridPagination = ComponentProps<typeof ProductGrid>["pagination"];
 
 export function BestDealsSection({
   products,
@@ -10,12 +13,14 @@ export function BestDealsSection({
   emptyTitle = "لا توجد منتجات متاحة",
   emptyDescription = "ستظهر المنتجات النشطة هنا عند إضافتها من لوحة الإدارة.",
   clearFiltersHref,
+  pagination,
 }: {
   products: StoreProduct[];
   title?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   clearFiltersHref?: string;
+  pagination?: ProductGridPagination;
 }) {
   return (
     <section id="best-deals" className="space-y-4 scroll-mt-6">
@@ -35,7 +40,7 @@ export function BestDealsSection({
           )}
         </div>
       ) : (
-        <ProductGrid products={products} />
+        <ProductGrid products={products} pagination={pagination} />
       )}
     </section>
   );

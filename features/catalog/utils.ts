@@ -1,7 +1,8 @@
 import { productUnitLabels } from "@/lib/products/product-format";
-import type { StoreProduct } from "@/features/catalog/types";
+import { NEW_PRODUCT_DAYS } from "@/features/catalog/constants";
+import type { StoreProduct, StoreProductDetail } from "@/features/catalog/types";
 
-export function getProductImages(product: StoreProduct) {
+export function getProductImages(product: StoreProductDetail) {
   return [
     ...(product.image ? [product.image] : []),
     ...product.images
@@ -20,6 +21,16 @@ export function getDiscountPercent(product: StoreProduct) {
   if (comparePrice <= price || comparePrice <= 0) return null;
 
   return Math.round(((comparePrice - price) / comparePrice) * 100);
+}
+
+export function isNewProduct(product: Pick<StoreProduct, "createdAt">) {
+  const createdAt = new Date(product.createdAt).getTime();
+
+  if (!Number.isFinite(createdAt)) return false;
+
+  const newThresholdMs = NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
+
+  return createdAt >= Date.now() - newThresholdMs;
 }
 
 export function getUnitText(product: StoreProduct) {

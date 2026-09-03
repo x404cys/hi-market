@@ -10,6 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   createSlug,
   formatIqd,
   productStatusLabels,
@@ -45,6 +50,7 @@ import {
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Loader2,
   Plus,
   Save,
@@ -75,6 +81,7 @@ type ProductFormState = {
   brandId: string;
   price: string;
   comparePrice: string;
+  costPrice: string;
   unit: (typeof productUnitValues)[number];
   unitValue: string;
   isWeighted: boolean;
@@ -87,7 +94,6 @@ type ProductFormState = {
   image: string;
   images: ProductImageFormItem[];
   status: (typeof productStatusValues)[number];
-  isFeatured: boolean;
 };
 
 type FieldErrors = Partial<Record<keyof ProductFormState | "form", string>>;
@@ -102,6 +108,7 @@ const defaultFormState: ProductFormState = {
   brandId: "",
   price: "",
   comparePrice: "",
+  costPrice: "",
   unit: "PIECE",
   unitValue: "",
   isWeighted: false,
@@ -114,7 +121,6 @@ const defaultFormState: ProductFormState = {
   image: "",
   images: [],
   status: "ACTIVE",
-  isFeatured: false,
 };
 
 export function ProductForm({
@@ -281,6 +287,20 @@ export function ProductForm({
         : saveStep === "saving"
           ? "جاري حفظ المنتج..."
           : "حفظ المنتج";
+  const hasAdditionalInfoErrors = Boolean(
+    errors.description ||
+      errors.sku ||
+      errors.barcode ||
+      errors.brandId ||
+      (mode === "edit" && errors.slug),
+  );
+  const hasAdvancedPricingErrors = Boolean(errors.comparePrice || errors.costPrice);
+  const hasAdvancedInventoryErrors = Boolean(
+    errors.lowStockAt ||
+      errors.unitValue ||
+      errors.minOrderQty ||
+      errors.orderStep,
+  );
 
   function setField<K extends keyof ProductFormState>(key: K, value: ProductFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -353,7 +373,7 @@ export function ProductForm({
         return;
       }
 
-      const preUploadParsed = schema.safeParse(formToPayload(workingForm));
+      const preUploadParsed = schema.safeParse(formToPayload(workingForm, mode));
       if (!preUploadParsed.success) {
         const nextErrors = zodToFieldErrors(preUploadParsed.error);
         setErrors(nextErrors);
@@ -370,7 +390,7 @@ export function ProductForm({
 
       setSaveStep("saving");
 
-      const parsed = schema.safeParse(formToPayload(workingForm));
+      const parsed = schema.safeParse(formToPayload(workingForm, mode));
       if (!parsed.success) {
         await cleanupUploadedImagesForRetry(uploadedKeys, workingForm.images);
         const nextErrors = zodToFieldErrors(parsed.error);
@@ -502,49 +522,6 @@ export function ProductForm({
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5">
-            <Card className="rounded-lg border-slate-200 shadow-none">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle>معلومات المنتج</CardTitle>
-                <CardDescription>الاسم والرابط والوصف المختصر.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 p-4">
-                <Field label="اسم المنتج" required error={errors.name}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "name")}
-                    value={form.name}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setField("name", value);
-                      if (mode === "create" && !form.slug) {
-                        setField("slug", createSlug(value));
-                      }
-                    }}
-                    className={inputClass(errors.name)}
-                    placeholder="كوكا كولا 1.5 لتر"
-                  />
-                </Field>
-                <Field label="Slug" required error={errors.slug} hint="استخدم أحرف إنجليزية صغيرة وأرقام وشرطات.">
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "slug")}
-                    value={form.slug}
-                    onChange={(event) => setField("slug", createSlug(event.target.value))}
-                    className={inputClass(errors.slug)}
-                    dir="ltr"
-                    placeholder="coca-cola-1-5l"
-                  />
-                </Field>
-                <Field label="الوصف" error={errors.description}>
-                  <textarea
-                    ref={(element) => setFirstErrorRef(element, "description")}
-                    value={form.description}
-                    onChange={(event) => setField("description", event.target.value)}
-                    className={`${inputClass(errors.description)} min-h-28 resize-y py-2`}
-                    placeholder="وصف مختصر يساعد فريق الإدارة والعملاء على تمييز المنتج."
-                  />
-                </Field>
-              </CardContent>
-            </Card>
-
             <ProductImagesSection
               images={form.images}
               error={errors.image || errors.images}
@@ -554,10 +531,75 @@ export function ProductForm({
 
             <Card className="rounded-lg border-slate-200 shadow-none">
               <CardHeader className="border-b border-slate-100">
-                <CardTitle>التسعير</CardTitle>
-                <CardDescription>الأسعار بالدينار العراقي.</CardDescription>
+                <CardTitle>البيانات الأساسية</CardTitle>
+                <CardDescription>الحقول اللازمة لإنشاء المنتج بسرعة.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 p-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label="اسم المنتج" required error={errors.name}>
+                    <input
+                      ref={(element) => setFirstErrorRef(element, "name")}
+                      value={form.name}
+                      onChange={(event) => setField("name", event.target.value)}
+                      className={inputClass(errors.name)}
+                      placeholder="كوكا كولا 1.5 لتر"
+                    />
+                  </Field>
+                </div>
+
+                <div className="grid gap-2">
+                  <Field label="التصنيف" required error={errors.categoryId}>
+                    <select
+                      ref={(element) => setFirstErrorRef(element, "categoryId")}
+                      value={form.categoryId}
+                      onChange={(event) => setField("categoryId", event.target.value)}
+                      className={inputClass(errors.categoryId)}
+                      disabled={categoryLookupStatus === "loading" && categories.length === 0}
+                    >
+                      <option value="">
+                        {categoryLookupStatus === "loading"
+                          ? "جاري تحميل التصنيفات..."
+                          : categories.length === 0
+                            ? "لا توجد تصنيفات حالياً"
+                            : "اختر التصنيف"}
+                      </option>
+                      {hasCategoryFallback && (
+                        <option value={form.categoryId}>التصنيف الحالي</option>
+                      )}
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  {categoryLookupStatus === "loaded" && (
+                    <QuickCreateInlineAction
+                      ref={categoryAddButtonRef}
+                      label="+ إضافة تصنيف جديد"
+                      onClick={() => setQuickCreateKind("category")}
+                    />
+                  )}
+                  {categoryLookupStatus === "empty" && (
+                    <LookupMessage
+                      message="لا توجد تصنيفات حالياً."
+                      actionLabel="+ إضافة أول تصنيف"
+                      onAction={() => setQuickCreateKind("category")}
+                      actionRef={categoryAddButtonRef}
+                    />
+                  )}
+                  {categoryLookupStatus === "error" && (
+                    <LookupMessage
+                      message={categoryError ?? "تعذر تحميل التصنيفات."}
+                      isLoading={false}
+                      onRetry={() => void loadCategories()}
+                      actionLabel="+ إضافة تصنيف جديد"
+                      onAction={() => setQuickCreateKind("category")}
+                      actionRef={categoryAddButtonRef}
+                    />
+                  )}
+                </div>
+
                 <Field label="السعر" required error={errors.price}>
                   <MoneyInput
                     value={form.price}
@@ -566,47 +608,7 @@ export function ProductForm({
                     inputRef={(element) => setFirstErrorRef(element, "price")}
                   />
                 </Field>
-                <Field
-                  label="السعر قبل الخصم"
-                  error={errors.comparePrice}
-                  hint={discountPercent ? `خصم ${discountPercent.toLocaleString("ar-IQ")}%` : undefined}
-                >
-                  <MoneyInput
-                    value={form.comparePrice}
-                    onChange={(value) => setField("comparePrice", value)}
-                    error={errors.comparePrice}
-                    inputRef={(element) => setFirstErrorRef(element, "comparePrice")}
-                  />
-                </Field>
-              </CardContent>
-            </Card>
 
-            <Card className="rounded-lg border-slate-200 shadow-none">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle>المخزون</CardTitle>
-                <CardDescription>الكميات الحالية ومعرّفات التخزين والبيع.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 p-4 sm:grid-cols-2">
-                <Field label="SKU" error={errors.sku}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "sku")}
-                    value={form.sku}
-                    onChange={(event) => setField("sku", event.target.value)}
-                    className={inputClass(errors.sku)}
-                    dir="ltr"
-                    placeholder="CC-1500"
-                  />
-                </Field>
-                <Field label="الباركود" error={errors.barcode}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "barcode")}
-                    value={form.barcode}
-                    onChange={(event) => setField("barcode", event.target.value)}
-                    className={inputClass(errors.barcode)}
-                    dir="ltr"
-                    placeholder="123456789"
-                  />
-                </Field>
                 <Field label="الكمية المتوفرة" error={errors.stock}>
                   <input
                     ref={(element) => setFirstErrorRef(element, "stock")}
@@ -618,38 +620,7 @@ export function ProductForm({
                     className={inputClass(errors.stock)}
                   />
                 </Field>
-                <Field label="حد المخزون المنخفض" error={errors.lowStockAt}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "lowStockAt")}
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={form.lowStockAt}
-                    onChange={(event) => setField("lowStockAt", event.target.value)}
-                    className={inputClass(errors.lowStockAt)}
-                  />
-                </Field>
-                <ToggleField
-                  checked={form.trackInventory}
-                  onChange={(checked) => setField("trackInventory", checked)}
-                  title="تتبع المخزون"
-                  description="سجّل تغييرات الكمية ضمن سجل حركة المخزون."
-                />
-                <ToggleField
-                  checked={form.allowBackorder}
-                  onChange={(checked) => setField("allowBackorder", checked)}
-                  title="السماح بالطلب عند النفاد"
-                  description="اسمح باستقبال الطلبات حتى لو تجاوزت الكمية الحالية."
-                />
-              </CardContent>
-            </Card>
 
-            <Card className="rounded-lg border-slate-200 shadow-none">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle>الوحدة والقياس</CardTitle>
-                <CardDescription>طريقة بيع المنتج والحد الأدنى للطلب.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 p-4 sm:grid-cols-2">
                 <Field label="الوحدة" required error={errors.unit}>
                   <select
                     ref={(element) => setFirstErrorRef(element, "unit")}
@@ -664,129 +635,70 @@ export function ProductForm({
                     ))}
                   </select>
                 </Field>
-                <Field label="الحجم / الوزن" error={errors.unitValue}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "unitValue")}
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={form.unitValue}
-                    onChange={(event) => setField("unitValue", event.target.value)}
-                    className={inputClass(errors.unitValue)}
-                    placeholder="1.5"
-                  />
-                </Field>
-                <Field label="أقل كمية للطلب" error={errors.minOrderQty}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "minOrderQty")}
-                    type="number"
-                    min="0.001"
-                    step="0.001"
-                    value={form.minOrderQty}
-                    onChange={(event) => setField("minOrderQty", event.target.value)}
-                    className={inputClass(errors.minOrderQty)}
-                  />
-                </Field>
-                <Field label="خطوة الزيادة" error={errors.orderStep}>
-                  <input
-                    ref={(element) => setFirstErrorRef(element, "orderStep")}
-                    type="number"
-                    min="0.001"
-                    step="0.001"
-                    value={form.orderStep}
-                    onChange={(event) => setField("orderStep", event.target.value)}
-                    className={inputClass(errors.orderStep)}
-                  />
-                </Field>
+
                 <div className="sm:col-span-2">
-                  <ToggleField
-                    checked={form.isWeighted}
-                    onChange={(checked) => setField("isWeighted", checked)}
-                    title="يباع بالوزن"
-                    description="فعّل هذا الخيار للمنتجات التي يمكن طلب كمية جزئية منها، مثل الخضروات والفواكه واللحوم."
-                  />
+                  <Field label="حالة المنتج" required error={errors.status}>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {productStatusValues.map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setField("status", status)}
+                          className={`flex h-10 items-center justify-center rounded-md border text-sm transition ${
+                            form.status === status
+                              ? "border-slate-950 bg-slate-950 text-white"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {productStatusLabels[status]}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
-            <Card className="rounded-lg border-slate-200 shadow-none">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle>الحالة والتنظيم</CardTitle>
-                <CardDescription>حدد ظهور المنتج وتصنيفه.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 p-4">
-                <Field label="حالة المنتج" required error={errors.status}>
-                  <div className="grid grid-cols-2 gap-2">
-                    {productStatusValues.map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        onClick={() => setField("status", status)}
-                        className={`flex h-10 items-center justify-center rounded-md border text-sm transition ${
-                          form.status === status
-                            ? "border-slate-950 bg-slate-950 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {productStatusLabels[status]}
-                      </button>
-                    ))}
-                  </div>
+            <AdvancedSection
+              title="معلومات إضافية"
+              description="الوصف والمعرفات والماركة والرابط المخصص."
+              hasError={hasAdditionalInfoErrors}
+            >
+              <div className="sm:col-span-2">
+                <Field label="الوصف" error={errors.description}>
+                  <textarea
+                    ref={(element) => setFirstErrorRef(element, "description")}
+                    value={form.description}
+                    onChange={(event) => setField("description", event.target.value)}
+                    className={`${inputClass(errors.description)} min-h-28 resize-y py-2`}
+                    placeholder="وصف مختصر يساعد فريق الإدارة والعملاء على تمييز المنتج."
+                  />
                 </Field>
+              </div>
 
-                <Field label="التصنيف" required error={errors.categoryId}>
-                  <select
-                    ref={(element) => setFirstErrorRef(element, "categoryId")}
-                    value={form.categoryId}
-                    onChange={(event) => setField("categoryId", event.target.value)}
-                    className={inputClass(errors.categoryId)}
-                    disabled={categoryLookupStatus === "loading" && categories.length === 0}
-                  >
-                    <option value="">
-                      {categoryLookupStatus === "loading"
-                        ? "جاري تحميل التصنيفات..."
-                        : categories.length === 0
-                          ? "لا توجد تصنيفات بعد"
-                          : "اختر التصنيف"}
-                    </option>
-                    {hasCategoryFallback && (
-                      <option value={form.categoryId}>التصنيف الحالي</option>
-                    )}
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                {categoryLookupStatus === "loaded" && (
-                  <QuickCreateInlineAction
-                    ref={categoryAddButtonRef}
-                    label="+ إضافة تصنيف جديد"
-                    onClick={() => setQuickCreateKind("category")}
-                  />
-                )}
-                {categoryLookupStatus === "empty" && (
-                  <LookupMessage
-                    message="لا توجد تصنيفات بعد."
-                    actionLabel="+ إضافة أول تصنيف"
-                    onAction={() => setQuickCreateKind("category")}
-                    actionRef={categoryAddButtonRef}
-                  />
-                )}
-                {categoryLookupStatus === "error" && (
-                  <LookupMessage
-                    message={categoryError ?? "تعذر تحميل التصنيفات."}
-                    isLoading={false}
-                    onRetry={() => void loadCategories()}
-                    actionLabel="+ إضافة تصنيف جديد"
-                    onAction={() => setQuickCreateKind("category")}
-                    actionRef={categoryAddButtonRef}
-                  />
-                )}
+              <Field label="SKU" error={errors.sku}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "sku")}
+                  value={form.sku}
+                  onChange={(event) => setField("sku", event.target.value)}
+                  className={inputClass(errors.sku)}
+                  dir="ltr"
+                  placeholder="CC-1500"
+                />
+              </Field>
 
+              <Field label="الباركود" error={errors.barcode}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "barcode")}
+                  value={form.barcode}
+                  onChange={(event) => setField("barcode", event.target.value)}
+                  className={inputClass(errors.barcode)}
+                  dir="ltr"
+                  placeholder="123456789"
+                />
+              </Field>
+
+              <div className="grid gap-2 sm:col-span-2">
                 <Field label="الماركة" error={errors.brandId}>
                   <select
                     ref={(element) => setFirstErrorRef(element, "brandId")}
@@ -830,16 +742,134 @@ export function ProductForm({
                     actionRef={brandAddButtonRef}
                   />
                 )}
+              </div>
 
-                <ToggleField
-                  checked={form.isFeatured}
-                  onChange={(checked) => setField("isFeatured", checked)}
-                  title="منتج مميز"
-                  description="اعرض المنتج ضمن مناطق المنتجات المميزة عند توفرها."
+              {mode === "edit" && (
+                <div className="sm:col-span-2">
+                  <Field
+                    label="الرابط المخصص"
+                    error={errors.slug}
+                    hint="اتركه كما هو للحفاظ على رابط المنتج الحالي."
+                  >
+                    <input
+                      ref={(element) => setFirstErrorRef(element, "slug")}
+                      value={form.slug}
+                      onChange={(event) => setField("slug", createSlug(event.target.value))}
+                      className={inputClass(errors.slug)}
+                      dir="ltr"
+                      placeholder="coca-cola-1-5l"
+                    />
+                  </Field>
+                </div>
+              )}
+            </AdvancedSection>
+
+            <AdvancedSection
+              title="التسعير المتقدم"
+              description="السعر قبل الخصم وتكلفة الشراء الداخلية."
+              hasError={hasAdvancedPricingErrors}
+            >
+              <Field
+                label="السعر قبل الخصم"
+                error={errors.comparePrice}
+                hint={discountPercent ? `خصم ${discountPercent.toLocaleString("ar-IQ")}%` : undefined}
+              >
+                <MoneyInput
+                  value={form.comparePrice}
+                  onChange={(value) => setField("comparePrice", value)}
+                  error={errors.comparePrice}
+                  inputRef={(element) => setFirstErrorRef(element, "comparePrice")}
                 />
-              </CardContent>
-            </Card>
+              </Field>
 
+              <Field label="سعر التكلفة" error={errors.costPrice}>
+                <MoneyInput
+                  value={form.costPrice}
+                  onChange={(value) => setField("costPrice", value)}
+                  error={errors.costPrice}
+                  inputRef={(element) => setFirstErrorRef(element, "costPrice")}
+                />
+              </Field>
+            </AdvancedSection>
+
+            <AdvancedSection
+              title="إعدادات المخزون المتقدمة"
+              description="حدود الطلب، التتبع، وخيارات البيع بالوزن."
+              hasError={hasAdvancedInventoryErrors}
+            >
+              <Field label="الحجم / الوزن" error={errors.unitValue}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "unitValue")}
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={form.unitValue}
+                  onChange={(event) => setField("unitValue", event.target.value)}
+                  className={inputClass(errors.unitValue)}
+                  placeholder="1.5"
+                />
+              </Field>
+
+              <Field label="حد المخزون المنخفض" error={errors.lowStockAt}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "lowStockAt")}
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={form.lowStockAt}
+                  onChange={(event) => setField("lowStockAt", event.target.value)}
+                  className={inputClass(errors.lowStockAt)}
+                />
+              </Field>
+
+              <Field label="أقل كمية للطلب" error={errors.minOrderQty}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "minOrderQty")}
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value={form.minOrderQty}
+                  onChange={(event) => setField("minOrderQty", event.target.value)}
+                  className={inputClass(errors.minOrderQty)}
+                />
+              </Field>
+
+              <Field label="خطوة الزيادة" error={errors.orderStep}>
+                <input
+                  ref={(element) => setFirstErrorRef(element, "orderStep")}
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value={form.orderStep}
+                  onChange={(event) => setField("orderStep", event.target.value)}
+                  className={inputClass(errors.orderStep)}
+                />
+              </Field>
+
+              <ToggleField
+                checked={form.trackInventory}
+                onChange={(checked) => setField("trackInventory", checked)}
+                title="تتبع المخزون"
+                description="سجّل تغييرات الكمية ضمن سجل حركة المخزون."
+              />
+              <ToggleField
+                checked={form.allowBackorder}
+                onChange={(checked) => setField("allowBackorder", checked)}
+                title="السماح بالطلب عند النفاد"
+                description="اسمح باستقبال الطلبات حتى لو تجاوزت الكمية الحالية."
+              />
+              <div className="sm:col-span-2">
+                <ToggleField
+                  checked={form.isWeighted}
+                  onChange={(checked) => setField("isWeighted", checked)}
+                  title="يباع بالوزن"
+                  description="فعّل هذا الخيار للمنتجات التي يمكن طلب كمية جزئية منها، مثل الخضروات والفواكه واللحوم."
+                />
+              </div>
+            </AdvancedSection>
+          </div>
+
+          <aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
             <Card className="rounded-lg border-slate-200 shadow-none">
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-center justify-between">
@@ -919,6 +949,53 @@ function MoneyInput({
       />
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">د.ع</span>
     </div>
+  );
+}
+
+function AdvancedSection({
+  title,
+  description,
+  hasError,
+  children,
+}: {
+  title: string;
+  description: string;
+  hasError?: boolean;
+  children: React.ReactNode;
+}) {
+  const [userOpen, setUserOpen] = useState(false);
+  const open = userOpen || Boolean(hasError);
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setUserOpen}
+      className="rounded-lg border border-slate-200 bg-white"
+    >
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition hover:bg-slate-50"
+        >
+          <span>
+            <span className="block text-base font-semibold text-slate-950">
+              {title}
+            </span>
+            <span className="mt-1 block text-sm text-slate-500">
+              {description}
+            </span>
+          </span>
+          <ChevronDown
+            className={`size-4 shrink-0 text-slate-400 transition ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="border-t border-slate-100">
+        <div className="grid gap-4 p-4 sm:grid-cols-2">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -1140,7 +1217,7 @@ function upsertBrandOption(brands: BrandOption[], brand: BrandOption) {
   return [...brands, brand];
 }
 
-function formToPayload(form: ProductFormState) {
+function formToPayload(form: ProductFormState, mode: ProductFormMode) {
   const savedImages = ensureProductImagePrimary(form.images).filter(
     (image) =>
       image.url &&
@@ -1150,7 +1227,7 @@ function formToPayload(form: ProductFormState) {
 
   return {
     name: form.name,
-    slug: form.slug,
+    ...(mode === "edit" ? { slug: form.slug } : {}),
     description: nullableString(form.description),
     sku: nullableString(form.sku),
     barcode: nullableString(form.barcode),
@@ -1158,6 +1235,7 @@ function formToPayload(form: ProductFormState) {
     brandId: form.brandId ? form.brandId : null,
     price: form.price,
     comparePrice: nullableString(form.comparePrice),
+    costPrice: nullableString(form.costPrice),
     unit: form.unit,
     unitValue: nullableString(form.unitValue),
     isWeighted: form.isWeighted,
@@ -1173,7 +1251,6 @@ function formToPayload(form: ProductFormState) {
       sortOrder: index,
     })),
     status: form.status,
-    isFeatured: form.isFeatured,
   };
 }
 
@@ -1209,6 +1286,7 @@ function productToFormState(product: ProductDto): ProductFormState {
     brandId: product.brandId ?? "",
     price: product.price,
     comparePrice: product.comparePrice ?? "",
+    costPrice: product.costPrice ?? "",
     unit: product.unit,
     unitValue: product.unitValue ?? "",
     isWeighted: product.isWeighted,
@@ -1221,7 +1299,6 @@ function productToFormState(product: ProductDto): ProductFormState {
     image: imageItems.find((image) => image.isPrimary)?.url ?? "",
     images: imageItems,
     status: product.status,
-    isFeatured: product.isFeatured,
   };
 }
 

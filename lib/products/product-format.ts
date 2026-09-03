@@ -28,9 +28,49 @@ export function createSlug(value: string) {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0621-\u064A]/g, (character) => arabicSlugMap[character] ?? "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+const arabicSlugMap: Record<string, string> = {
+  ء: "",
+  آ: "a",
+  أ: "a",
+  إ: "i",
+  ا: "a",
+  ب: "b",
+  ت: "t",
+  ث: "th",
+  ج: "j",
+  ح: "h",
+  خ: "kh",
+  د: "d",
+  ذ: "dh",
+  ر: "r",
+  ز: "z",
+  س: "s",
+  ش: "sh",
+  ص: "s",
+  ض: "d",
+  ط: "t",
+  ظ: "z",
+  ع: "a",
+  غ: "gh",
+  ف: "f",
+  ق: "q",
+  ك: "k",
+  ل: "l",
+  م: "m",
+  ن: "n",
+  ه: "h",
+  و: "w",
+  ي: "y",
+  ى: "a",
+  ة: "h",
+  ئ: "y",
+  ؤ: "w",
+};
 
 export const productStatusLabels: Record<ProductStatus, string> = {
   ACTIVE: "نشط",

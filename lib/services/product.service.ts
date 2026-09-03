@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 import { ApiError } from "@/lib/api-response";
 import { decimalToString, toPrismaDecimal } from "@/lib/decimal";
 import prisma from "@/lib/prisma";
+import { createSlug } from "@/lib/products/product-format";
 import {
   STORE_PRODUCT_MAX_PAGE_SIZE,
   STORE_PRODUCT_PAGE_SIZE,
@@ -23,6 +24,7 @@ import type {
   CursorPaginatedProducts,
   ProductCardDto,
   ProductDto,
+  StoreProductDetailDto,
 } from "@/lib/products/product-types";
 
 const productDetailSelect = {
@@ -36,6 +38,7 @@ const productDetailSelect = {
   barcode: true,
   price: true,
   comparePrice: true,
+  costPrice: true,
   unit: true,
   unitValue: true,
   isWeighted: true,
@@ -164,8 +167,8 @@ type NormalizedStoreProductQueryOptions = {
 
 export async function createProduct(input: CreateProductInput) {
   await ensureRelationsExist(input.categoryId, input.brandId ?? null);
+  const slug = await generateUniqueProductSlug(input.name);
   await ensureProductUniqueness({
-    slug: input.slug,
     sku: input.sku ?? null,
     barcode: input.barcode ?? null,
   });
@@ -181,7 +184,7 @@ export async function createProduct(input: CreateProductInput) {
         categoryId: input.categoryId,
         brandId: input.brandId ?? null,
         name: input.name,
-        slug: input.slug,
+        slug,
         description: input.description ?? null,
         sku: input.sku ?? null,
         barcode: input.barcode ?? null,
@@ -254,6 +257,13 @@ export async function updateProduct(
   productId: string,
   input: UpdateProductInput,
 ) {
+  const normalizedInput =
+    input.slug === undefined
+      ? input
+      : {
+          ...input,
+          slug: createSlug(input.slug),
+        };
   const current = await prisma.product.findUnique({
     where: { id: productId },
     select: {
@@ -270,28 +280,39 @@ export async function updateProduct(
     throw new ApiError("Product not found", 404);
   }
 
-  if (input.categoryId !== undefined || input.brandId !== undefined) {
-    await ensureRelationsExist(input.categoryId, input.brandId ?? undefined);
+  if (
+    normalizedInput.categoryId !== undefined ||
+    normalizedInput.brandId !== undefined
+  ) {
+    await ensureRelationsExist(
+      normalizedInput.categoryId,
+      normalizedInput.brandId ?? undefined,
+    );
   }
 
   await ensureProductUniqueness(
     {
-      slug: input.slug,
-      sku: input.sku ?? undefined,
-      barcode: input.barcode ?? undefined,
+      slug: normalizedInput.slug,
+      sku: normalizedInput.sku ?? undefined,
+      barcode: normalizedInput.barcode ?? undefined,
     },
     productId,
   );
 
-  const updateData = buildProductUpdateData(input);
+  const updateData = buildProductUpdateData(normalizedInput);
   const nextStock =
-    input.stock === undefined ? undefined : toPrismaDecimal(input.stock);
+    normalizedInput.stock === undefined
+      ? undefined
+      : toPrismaDecimal(normalizedInput.stock);
   const stockChanged =
     nextStock !== undefined && !current.stock.equals(nextStock);
   const shouldRecordStockMovement =
-    stockChanged && (current.trackInventory || input.trackInventory === true);
+    stockChanged &&
+    (current.trackInventory || normalizedInput.trackInventory === true);
   const imageRows =
-    input.images === undefined ? undefined : normalizeImages(input.images);
+    normalizedInput.images === undefined
+      ? undefined
+      : normalizeImages(normalizedInput.images);
 
   const updated = await prisma.$transaction(async (tx) => {
     if (imageRows !== undefined) {
@@ -380,7 +401,7 @@ export async function getStoreProductBySlug(slug: string) {
         select: productDetailSelect,
       });
 
-      return product ? serializeProduct(product) : null;
+      return product ? serializeStoreProduct(product) : null;
     },
     ["store-product-detail", slug],
     {
@@ -684,6 +705,24 @@ async function ensureRelationsExist(categoryId?: string, brandId?: string | null
   }
 }
 
+async function generateUniqueProductSlug(name: string) {
+  const baseSlug = createSlug(name) || "product";
+  let candidate = baseSlug;
+
+  for (let suffix = 2; suffix <= 500; suffix += 1) {
+    const existing = await prisma.product.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+
+    if (!existing) return candidate;
+
+    candidate = `${baseSlug}-${suffix}`;
+  }
+
+  throw new ApiError("Could not generate product slug", 409);
+}
+
 async function ensureProductUniqueness(
   values: {
     slug?: string;
@@ -789,6 +828,7 @@ function serializeProduct(product: ProductDetail): ProductDto {
     ...product,
     price: decimalToString(product.price) ?? "0",
     comparePrice: decimalToString(product.comparePrice),
+    costPrice: decimalToString(product.costPrice),
     unitValue: decimalToString(product.unitValue),
     minOrderQty: decimalToString(product.minOrderQty) ?? "1",
     orderStep: decimalToString(product.orderStep) ?? "1",
@@ -801,6 +841,13 @@ function serializeProduct(product: ProductDetail): ProductDto {
       createdAt: image.createdAt.toISOString(),
     })),
   };
+}
+
+function serializeStoreProduct(product: ProductDetail): StoreProductDetailDto {
+  const serializedProduct: Partial<ProductDto> = serializeProduct(product);
+  delete serializedProduct.costPrice;
+
+  return serializedProduct as StoreProductDetailDto;
 }
 
 function serializeProductCard(product: ProductCard): ProductCardDto {

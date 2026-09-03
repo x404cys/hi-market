@@ -31,6 +31,10 @@ const productImageUrlSchema = requiredString.refine(
 const optionalNullableProductImageUrl = productImageUrlSchema
   .nullable()
   .optional();
+const productSlugSchema = requiredString.regex(
+  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  "Slug must contain lowercase letters, numbers, and hyphens only",
+);
 
 function decimalSchema(options: {
   maxScale: number;
@@ -84,10 +88,7 @@ export const productIdSchema = idSchema;
 export const createProductSchema = z
   .object({
     name: requiredString,
-    slug: requiredString.regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Slug must contain lowercase letters, numbers, and hyphens only",
-    ),
+    slug: productSlugSchema.optional(),
     description: optionalNullableString,
     sku: optionalNullableString,
     barcode: optionalNullableString,

@@ -82,6 +82,7 @@ export type ProductDto = {
   barcode: string | null;
   price: string;
   comparePrice: string | null;
+  costPrice: string | null;
   unit: ProductUnit;
   unitValue: string | null;
   isWeighted: boolean;
@@ -137,6 +138,8 @@ export type ProductCardDto = Pick<
   | "category"
   | "brand"
 >;
+
+export type StoreProductDetailDto = Omit<ProductDto, "costPrice">;
 
 export type CursorPaginatedProducts<T> = {
   items: T[];

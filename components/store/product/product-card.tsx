@@ -8,7 +8,12 @@ import { FavoriteButton } from "@/components/store/product/favorite-button";
 import { ProductPrice } from "@/components/store/product/product-price";
 import { StoreProductImage } from "@/components/store/shared/product-image";
 import type { StoreProduct } from "@/features/catalog/types";
-import { getDiscountPercent, getUnitText, isNewProduct } from "@/features/catalog/utils";
+import {
+  getDiscountPercent,
+  getStorefrontStockState,
+  getUnitText,
+  isNewProduct,
+} from "@/features/catalog/utils";
 import {
   addProductToCart,
   getCartStepForProduct,
@@ -28,8 +33,8 @@ export function ProductCard({
   const cart = useCartState();
   const inCartQuantity =
     cart.items.find((item) => item.productId === product.id)?.quantity ?? 0;
-  const unavailable =
-    product.trackInventory && !product.allowBackorder && Number(product.stock) <= 0;
+  const stockState = getStorefrontStockState(product);
+  const unavailable = !stockState.purchasable;
   const step = getCartStepForProduct(product);
 
   function handleAddToCart() {

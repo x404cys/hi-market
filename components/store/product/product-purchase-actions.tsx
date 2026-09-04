@@ -6,7 +6,10 @@ import { useMemo, useState } from "react";
 import { QuantitySelector } from "@/components/store/product/quantity-selector";
 import type { StoreProduct } from "@/features/catalog/types";
 import { addProductToCart } from "@/features/cart/store";
-import { getInitialQuantity } from "@/features/catalog/utils";
+import {
+  getInitialQuantity,
+  getStorefrontStockState,
+} from "@/features/catalog/utils";
 import { formatIqd } from "@/lib/products/product-format";
 
 export function ProductPurchaseActions({
@@ -21,8 +24,8 @@ export function ProductPurchaseActions({
   const [quantity, setQuantity] = useState(() => getInitialQuantity(product));
   const [added, setAdded] = useState(false);
   const total = useMemo(() => Number(product.price) * quantity, [product.price, quantity]);
-  const unavailable =
-    product.trackInventory && !product.allowBackorder && Number(product.stock) <= 0;
+  const stockState = getStorefrontStockState(product);
+  const unavailable = !stockState.purchasable;
 
   function addToCart() {
     if (unavailable) return;

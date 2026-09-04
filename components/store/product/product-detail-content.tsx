@@ -1,11 +1,14 @@
-import { BadgeCheck, PackageCheck } from "lucide-react";
+import { PackageCheck } from "lucide-react";
 import { ProductDescription } from "@/components/store/product/product-description";
 import { ProductImageGallery } from "@/components/store/product/product-image-gallery";
 import { ProductPrice } from "@/components/store/product/product-price";
 import { ProductPurchaseActions } from "@/components/store/product/product-purchase-actions";
 import type { StoreProductDetail } from "@/features/catalog/types";
-import { getDiscountPercent, getUnitText } from "@/features/catalog/utils";
-import { getStockLabel } from "@/lib/products/product-format";
+import {
+  getDiscountPercent,
+  getStorefrontStockState,
+  getUnitText,
+} from "@/features/catalog/utils";
 
 export function ProductDetailContent({
   product,
@@ -15,7 +18,7 @@ export function ProductDetailContent({
   mode?: "page" | "sheet";
 }) {
   const discount = getDiscountPercent(product);
-  const stock = getStockLabel(product.stock, product.lowStockAt);
+  const stock = getStorefrontStockState(product);
   const brandOrCategory = product.brand?.name ?? product.category.name;
 
   return (
@@ -58,19 +61,16 @@ export function ProductDetailContent({
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <InfoPill
-                icon={<PackageCheck className="size-4" />}
-                label="التوفر"
-                value={stock.label}
-              />
-              <InfoPill
-                icon={<BadgeCheck className="size-4" />}
-                label="النوع"
-                value={product.isWeighted ? "يباع بالوزن" : "منتج عادي"}
-              />
-            </div>
-          </section>
+            {stock.label ? (
+              <div className="grid gap-2">
+                <InfoPill
+                  icon={<PackageCheck className="size-4" />}
+                  label="التوفر"
+                  value={stock.label}
+                />
+              </div>
+            ) : null}
+            </section>
 
           <ProductDescription description={product.description} />
 

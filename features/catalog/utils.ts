@@ -70,6 +70,52 @@ export function formatQuantityLabel(product: StoreProduct, quantity: number) {
   return `${formattedQuantity} ${unitLabel}`;
 }
 
+export function getStorefrontStockState(
+  product: Pick<
+    StoreProduct,
+    "allowBackorder" | "lowStockAt" | "stock" | "trackInventory"
+  >,
+) {
+  if (!product.trackInventory || product.allowBackorder) {
+    return {
+      purchasable: true,
+      showLowStock: false,
+      showOutOfStock: false,
+      label: undefined,
+    };
+  }
+
+  const stockValue = Number(product.stock);
+  const lowStockValue = Number(product.lowStockAt);
+  const stock = Number.isFinite(stockValue) ? stockValue : 0;
+  const lowStockAt = Number.isFinite(lowStockValue) ? lowStockValue : 0;
+
+  if (stock <= 0) {
+    return {
+      purchasable: false,
+      showLowStock: false,
+      showOutOfStock: true,
+      label: "نفد من المخزون",
+    };
+  }
+
+  if (lowStockAt > 0 && stock <= lowStockAt) {
+    return {
+      purchasable: true,
+      showLowStock: true,
+      showOutOfStock: false,
+      label: "مخزون منخفض",
+    };
+  }
+
+  return {
+    purchasable: true,
+    showLowStock: false,
+    showOutOfStock: false,
+    label: undefined,
+  };
+}
+
 function formatCompactNumber(value: string) {
   const numericValue = Number(value);
 

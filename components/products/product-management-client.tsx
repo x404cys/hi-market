@@ -316,6 +316,12 @@ export function ProductManagementClient({
             <h1 className="text-2xl font-semibold tracking-normal text-slate-950">المنتجات</h1>
             <p className="mt-1 text-sm text-slate-500">إدارة منتجات المتجر والأسعار والمخزون.</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          {canUpdate && (
+            <Button asChild variant="outline" className="h-9 gap-2 rounded-md px-3">
+              <Link href="/dashboard/products/prices"><Pencil className="size-4" />تحديث الأسعار</Link>
+            </Button>
+          )}
           {canCreate && (
             <Button asChild className="h-9 gap-2 self-start rounded-md px-3">
               <Link href="/dashboard/products/new">
@@ -324,6 +330,7 @@ export function ProductManagementClient({
               </Link>
             </Button>
           )}
+          </div>
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

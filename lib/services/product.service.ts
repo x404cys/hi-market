@@ -221,6 +221,7 @@ export async function createProduct(input: CreateProductInput) {
       },
       select: { id: true },
     });
+    //
 
     if (imageRows.length > 0) {
       await tx.productImage.createMany({

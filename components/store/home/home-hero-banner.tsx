@@ -23,10 +23,34 @@ export function HomeHeroBanner({
   const link = resolvedBanner.link;
   const mobileImage = resolvedBanner.mobileImage;
   const image = resolvedBanner.image;
+  const isImageOnly =
+    !title?.trim() && !description?.trim() && !buttonText?.trim();
+
+  if (isImageOnly) {
+    const imageOnlyContent = (
+      <BannerFillImage
+        image={image}
+        mobileImage={mobileImage}
+        alt="بنر إعلاني"
+      />
+    );
+
+    return (
+      <section className="relative min-h-[136px] overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] md:min-h-[172px] lg:aspect-[16/7] lg:min-h-0">
+        {link ? (
+          <Link href={link} className="absolute inset-0 block" aria-label="بنر إعلاني">
+            {imageOnlyContent}
+          </Link>
+        ) : (
+          imageOnlyContent
+        )}
+      </section>
+    );
+  }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] px-4 py-4">
-      <div className="grid min-h-[104px] grid-cols-[1fr_108px] items-center gap-3 md:grid-cols-[1fr_180px]">
+    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] px-4 py-4 lg:aspect-[16/7]">
+      <div className="grid min-h-[104px] grid-cols-[1fr_108px] items-center gap-3 md:grid-cols-[1fr_180px] lg:h-full lg:min-h-0">
         <div className="min-w-0">
           {title && (
             <h1 className="text-lg font-semibold leading-6 text-[var(--store-primary-strong)] md:text-xl">
@@ -47,7 +71,7 @@ export function HomeHeroBanner({
             </Link>
           )}
         </div>
-        <div className="relative h-[104px] md:h-[140px]">
+        <div className="relative h-[104px] md:h-[140px] lg:h-full">
           {mobileImage && mobileImage !== image ? (
             <>
               <Image
@@ -80,5 +104,49 @@ export function HomeHeroBanner({
         </div>
       </div>
     </section>
+  );
+}
+
+function BannerFillImage({
+  image,
+  mobileImage,
+  alt,
+}: {
+  image: string;
+  mobileImage: string | null;
+  alt: string;
+}) {
+  if (mobileImage && mobileImage !== image) {
+    return (
+      <>
+        <Image
+          src={mobileImage}
+          alt={alt}
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover md:hidden"
+        />
+        <Image
+          src={image}
+          alt={alt}
+          fill
+          sizes="100vw"
+          priority
+          className="hidden object-cover md:block"
+        />
+      </>
+    );
+  }
+
+  return (
+    <Image
+      src={image}
+      alt={alt}
+      fill
+      sizes="100vw"
+      priority
+      className="object-cover"
+    />
   );
 }

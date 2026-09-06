@@ -66,7 +66,7 @@ export function OrderFilters({ zones }: { zones: DeliveryZoneDto[] }) {
             value={searchValue}
             onChange={(event) => updateSearch(event.target.value)}
             className="h-10 w-full rounded-md border border-slate-200 bg-white pr-9 pl-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-            placeholder="ابحث برقم الطلب، اسم العميل أو الهاتف..."
+            placeholder="ابحث برقم الطلب، الاسم أو رقم الهاتف..."
           />
         </label>
 

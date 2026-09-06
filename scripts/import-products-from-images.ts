@@ -6,8 +6,8 @@ import sharp from "sharp";
 import { Prisma, PrismaClient, ProductStatus, ProductUnit, StockMovementType } from "../app/generated/prisma";
 import { createSlug } from "../lib/products/product-format";
 
-const CATEGORY = "الغذائية";
-const SOURCE = "C:/Users/um alqura/Desktop/الغذائي/الغذائي";
+const CATEGORY = "المعجنات";
+const SOURCE = "C:/Users/um alqura/Desktop/عناية الاطفال/عناية الاطفال";
 const EXTENSIONS = new Set([".webp", ".jpg", ".jpeg", ".png", ".avif"]);
 type Candidate = { file: string; name: string; image: string };
 type Existing = { name: string; slug: string; image: string | null };

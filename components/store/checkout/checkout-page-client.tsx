@@ -207,7 +207,7 @@ export function CheckoutPageClient() {
             <CheckCircle2 className="mx-auto size-10 text-[var(--store-primary)]" />
             <h1 className="mt-4 text-xl font-semibold">تم استلام طلبك</h1>
             <p className="mt-2 text-sm text-[var(--store-text-muted)]">
-              طلب #{createdOrder.orderNumber}
+              طلب {getDisplayOrderNumber(createdOrder.orderNumber)}
             </p>
             <div className="mt-5 space-y-2 rounded-lg border border-[var(--store-border)] bg-slate-50 px-4 py-3 text-right text-sm">
               <SummaryLine label="الهاتف" value={createdOrder.customerPhone} />
@@ -494,38 +494,74 @@ function openWhatsappOrder(order: OrderDto) {
 }
 
 function buildWhatsappMessage(order: OrderDto) {
+  const displayOrderNumber = getDisplayOrderNumber(order.orderNumber);
   const lines = [
-    `طلب جديد #${order.orderNumber}`,
+    "طلب جديد - Hi Market",
     "",
+    `رقم الطلب: ${displayOrderNumber}`,
+    `التاريخ: ${formatOrderDateTime(order.placedAt)}`,
+    "",
+    "معلومات الزبون",
     `الاسم: ${order.customerName}`,
     `الهاتف: ${order.customerPhone}`,
-    order.secondaryPhone ? `هاتف بديل: ${order.secondaryPhone}` : null,
+    order.secondaryPhone ? `الهاتف البديل: ${order.secondaryPhone}` : null,
+    `العنوان: ${buildOrderAddress(order)}`,
+    order.landmark ? `علامة دالة: ${order.landmark}` : null,
     "",
-    "العنوان:",
-    order.deliveryZoneName ? `منطقة التوصيل: ${order.deliveryZoneName}` : null,
-    order.governorate ? `المحافظة: ${order.governorate}` : null,
-    order.city ? `المدينة: ${order.city}` : null,
-    order.area ? `المنطقة: ${order.area}` : null,
-    order.street ? `الشارع: ${order.street}` : null,
-    order.address,
-    order.landmark ? `نقطة دالة: ${order.landmark}` : null,
+    `المبلغ الإجمالي: ${formatIqd(order.total)}`,
     "",
-    "المنتجات:",
-    ...order.items.map(
-      (item) =>
-        `- ${item.productName} × ${formatQuantity(item.quantity)} ${
-          productUnitLabels[item.unit]
-        } = ${formatIqd(item.total)}`,
-    ),
-    "",
-    `المجموع: ${formatIqd(order.subtotal)}`,
-    order.discountTotal !== "0" ? `الخصم: ${formatIqd(order.discountTotal)}` : null,
-    `التوصيل: ${formatIqd(order.deliveryFee)}`,
-    `الإجمالي: ${formatIqd(order.total)}`,
-    order.customerNotes ? `ملاحظات: ${order.customerNotes}` : null,
+    `يرجى اعتماد رقم الطلب ${displayOrderNumber} للمتابعة.`,
   ];
 
   return lines.filter(Boolean).join("\n");
+}
+
+function getDisplayOrderNumber(orderNumber: number) {
+  return `HM-${orderNumber}`;
+}
+
+function formatOrderDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  const day = padDatePart(date.getDate());
+  const month = padDatePart(date.getMonth() + 1);
+  const year = date.getFullYear();
+  let hour = date.getHours();
+  const minutes = padDatePart(date.getMinutes());
+  const meridiem = hour < 12 ? "ص" : "م";
+
+  hour %= 12;
+  if (hour === 0) hour = 12;
+
+  return `${day}/${month}/${year} - ${padDatePart(hour)}:${minutes} ${meridiem}`;
+}
+
+function padDatePart(value: number) {
+  return value.toString().padStart(2, "0");
+}
+
+function buildOrderAddress(order: OrderDto) {
+  const parts = [
+    order.governorate,
+    order.city,
+    order.area,
+    order.street,
+    order.address,
+  ];
+  const seen = new Set<string>();
+
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .filter((part) => {
+      const normalized = part.replace(/\s+/g, " ").toLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .join(" - ");
 }
 
 function emptyToUndefined(value: string) {

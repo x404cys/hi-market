@@ -14,6 +14,7 @@ import {
   operationalOrderStatuses,
   orderStatusLabels,
 } from "@/lib/orders/order-format";
+import { parseDisplayOrderNumber } from "@/lib/orders/order-search";
 import type {
   OrderDetailDto,
   OrderDto,
@@ -705,10 +706,10 @@ function buildOrderWhere(query: OrderQueryInput) {
 
   const search = query.search?.trim();
   if (search) {
-    const maybeOrderNumber = Number(search.replace(/^#/, ""));
+    const maybeOrderNumber = parseDisplayOrderNumber(search);
     andFilters.push({
       OR: [
-        Number.isInteger(maybeOrderNumber) && maybeOrderNumber > 0
+        maybeOrderNumber
           ? { orderNumber: maybeOrderNumber }
           : undefined,
         { customerName: { contains: search, mode: "insensitive" } },

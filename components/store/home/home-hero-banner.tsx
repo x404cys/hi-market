@@ -36,7 +36,7 @@ export function HomeHeroBanner({
     );
 
     return (
-      <section className="relative min-h-[136px] overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] md:min-h-[172px] lg:aspect-[16/7] lg:min-h-0">
+      <section className="relative min-h-[136px] overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] md:min-h-[172px]">
         {link ? (
           <Link href={link} className="absolute inset-0 block" aria-label="بنر إعلاني">
             {imageOnlyContent}
@@ -49,8 +49,8 @@ export function HomeHeroBanner({
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] px-4 py-4 lg:aspect-[16/7]">
-      <div className="grid min-h-[104px] grid-cols-[1fr_108px] items-center gap-3 md:grid-cols-[1fr_180px] lg:h-full lg:min-h-0">
+    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-[var(--store-primary-soft)] px-4 py-4">
+      <div className="grid min-h-[104px] grid-cols-[1fr_108px] items-center gap-3 md:grid-cols-[1fr_180px]">
         <div className="min-w-0">
           {title && (
             <h1 className="text-lg font-semibold leading-6 text-[var(--store-primary-strong)] md:text-xl">
@@ -71,7 +71,7 @@ export function HomeHeroBanner({
             </Link>
           )}
         </div>
-        <div className="relative h-[104px] md:h-[140px] lg:h-full">
+        <div className="relative h-[104px] md:h-[140px]">
           {mobileImage && mobileImage !== image ? (
             <>
               <Image

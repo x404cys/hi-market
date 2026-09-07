@@ -1,4 +1,5 @@
-import { Prisma, type UserRole } from "@/app/generated/prisma";
+import type { UserRole } from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { ApiError } from "@/lib/api-response";
 import type { AuthenticatedAdmin } from "@/lib/auth/session-types";
 import { hashPassword } from "@/lib/auth/password";
@@ -20,9 +21,9 @@ const userSelect = {
   lastLoginAt: true,
   createdAt: true,
   updatedAt: true,
-} satisfies Prisma.UserSelect;
+} satisfies PrismaTypes.UserSelect;
 
-type UserRecord = Prisma.UserGetPayload<{
+type UserRecord = PrismaTypes.UserGetPayload<{
   select: typeof userSelect;
 }>;
 

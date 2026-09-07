@@ -3,7 +3,7 @@ import type {
   PaymentMethod,
   PaymentStatus,
   ProductUnit,
-} from "@/app/generated/prisma";
+} from "@/lib/prisma-client";
 
 export type OrderItemDto = {
   id: string;

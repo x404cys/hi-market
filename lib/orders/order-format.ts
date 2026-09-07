@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@/app/generated/prisma";
+import type { OrderStatus } from "@/lib/prisma-client";
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   PENDING: "جديد",

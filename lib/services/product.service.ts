@@ -1,8 +1,8 @@
 import {
-  Prisma,
   ProductStatus,
   StockMovementType,
-} from "@/app/generated/prisma";
+} from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { unstable_cache } from "next/cache";
 import { ApiError } from "@/lib/api-response";
 import { decimalToString, toPrismaDecimal } from "@/lib/decimal";
@@ -84,9 +84,9 @@ const productDetailSelect = {
       sortOrder: "asc",
     },
   },
-} satisfies Prisma.ProductSelect;
+} satisfies PrismaTypes.ProductSelect;
 
-type ProductDetail = Prisma.ProductGetPayload<{
+type ProductDetail = PrismaTypes.ProductGetPayload<{
   select: typeof productDetailSelect;
 }>;
 
@@ -127,9 +127,9 @@ const productCardSelect = {
       isActive: true,
     },
   },
-} satisfies Prisma.ProductSelect;
+} satisfies PrismaTypes.ProductSelect;
 
-type ProductCard = Prisma.ProductGetPayload<{
+type ProductCard = PrismaTypes.ProductGetPayload<{
   select: typeof productCardSelect;
 }>;
 
@@ -484,7 +484,7 @@ function normalizeStoreProductQueryOptions(
 function buildStoreProductWhere(
   options: ReturnType<typeof normalizeStoreProductQueryOptions>,
 ) {
-  const andFilters: Prisma.ProductWhereInput[] = [
+  const andFilters: PrismaTypes.ProductWhereInput[] = [
     { status: ProductStatus.ACTIVE },
   ];
   const minPrice = normalizeStorePriceFilter(options.minPrice);
@@ -532,7 +532,7 @@ function buildStoreProductWhere(
     });
   }
 
-  return { AND: andFilters } satisfies Prisma.ProductWhereInput;
+  return { AND: andFilters } satisfies PrismaTypes.ProductWhereInput;
 }
 
 function getStoreProductOrderBy(sort: StoreProductSort) {
@@ -541,7 +541,7 @@ function getStoreProductOrderBy(sort: StoreProductSort) {
       { price: "asc" },
       { createdAt: "desc" },
       { id: "desc" },
-    ] satisfies Prisma.ProductOrderByWithRelationInput[];
+    ] satisfies PrismaTypes.ProductOrderByWithRelationInput[];
   }
 
   if (sort === "price-desc") {
@@ -549,13 +549,13 @@ function getStoreProductOrderBy(sort: StoreProductSort) {
       { price: "desc" },
       { createdAt: "desc" },
       { id: "desc" },
-    ] satisfies Prisma.ProductOrderByWithRelationInput[];
+    ] satisfies PrismaTypes.ProductOrderByWithRelationInput[];
   }
 
   return [
     { createdAt: "desc" },
     { id: "desc" },
-  ] satisfies Prisma.ProductOrderByWithRelationInput[];
+  ] satisfies PrismaTypes.ProductOrderByWithRelationInput[];
 }
 
 function cleanStoreText(value: string | undefined) {
@@ -586,7 +586,7 @@ export async function listRelatedStoreProducts(product: {
 }
 
 export async function listProducts(query: ProductQueryInput) {
-  const andFilters: Prisma.ProductWhereInput[] = [];
+  const andFilters: PrismaTypes.ProductWhereInput[] = [];
 
   if (query.categoryId) andFilters.push({ categoryId: query.categoryId });
   if (query.brandId) andFilters.push({ brandId: query.brandId });
@@ -625,12 +625,12 @@ export async function listProducts(query: ProductQueryInput) {
     });
   }
 
-  const where: Prisma.ProductWhereInput =
+  const where: PrismaTypes.ProductWhereInput =
     andFilters.length > 0 ? { AND: andFilters } : {};
 
   const orderBy = {
     [query.sortBy]: query.order,
-  } as Prisma.ProductOrderByWithRelationInput;
+  } as PrismaTypes.ProductOrderByWithRelationInput;
 
   const [
     products,
@@ -732,7 +732,7 @@ async function ensureProductUniqueness(
   },
   excludeProductId?: string,
 ) {
-  const checks: Prisma.ProductWhereInput[] = [];
+  const checks: PrismaTypes.ProductWhereInput[] = [];
 
   if (values.slug) checks.push({ slug: values.slug });
   if (values.sku) checks.push({ sku: values.sku });
@@ -768,7 +768,7 @@ async function ensureProductUniqueness(
 }
 
 function buildProductUpdateData(input: UpdateProductInput) {
-  const data: Prisma.ProductUncheckedUpdateInput = {};
+  const data: PrismaTypes.ProductUncheckedUpdateInput = {};
 
   if (input.categoryId !== undefined) data.categoryId = input.categoryId;
   if (input.brandId !== undefined) data.brandId = input.brandId;

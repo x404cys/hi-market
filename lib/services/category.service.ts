@@ -1,4 +1,4 @@
-import { Prisma } from "@/app/generated/prisma";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { ApiError } from "@/lib/api-response";
 import type {
   CategoryDto,
@@ -37,15 +37,15 @@ const categorySelect = {
       children: true,
     },
   },
-} satisfies Prisma.CategorySelect;
+} satisfies PrismaTypes.CategorySelect;
 
-type CategoryRecord = Prisma.CategoryGetPayload<{
+type CategoryRecord = PrismaTypes.CategoryGetPayload<{
   select: typeof categorySelect;
 }>;
 
 export async function listDashboardCategories(options?: { search?: string }) {
   const search = options?.search?.trim();
-  const where: Prisma.CategoryWhereInput = search
+  const where: PrismaTypes.CategoryWhereInput = search
     ? {
         OR: [
           { name: { contains: search, mode: "insensitive" } },
@@ -160,8 +160,8 @@ export async function deleteCategory(id: string) {
   return serializeCategory(category);
 }
 
-function buildCategoryUpdateData(input: UpdateCategoryInput): Prisma.CategoryUpdateInput {
-  const data: Prisma.CategoryUpdateInput = {};
+function buildCategoryUpdateData(input: UpdateCategoryInput): PrismaTypes.CategoryUpdateInput {
+  const data: PrismaTypes.CategoryUpdateInput = {};
 
   if (input.name !== undefined) data.name = input.name;
   if (input.slug !== undefined) data.slug = input.slug;

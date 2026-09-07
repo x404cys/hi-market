@@ -1,4 +1,5 @@
-import { OrderStatus, Prisma } from "@/app/generated/prisma";
+import { OrderStatus, Prisma } from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { decimalToString } from "@/lib/decimal";
 import {
   operationalOrderStatuses,
@@ -190,7 +191,7 @@ function getPreviousDaysStart(dayStart: Date, daysBack: number) {
 }
 
 function buildDailySales(
-  orders: Array<{ createdAt: Date; total: Prisma.Decimal }>,
+  orders: Array<{ createdAt: Date; total: PrismaTypes.Decimal }>,
   firstDay: Date,
 ) {
   const days = Array.from({ length: 7 }, (_, index) => {

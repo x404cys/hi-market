@@ -1,4 +1,4 @@
-import type { Prisma } from "@/app/generated/prisma";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { decimalToString } from "@/lib/decimal";
 import type { DeliveryZoneDto } from "@/lib/delivery/delivery-types";
 import prisma from "@/lib/prisma";
@@ -13,9 +13,9 @@ const deliveryZoneSelect = {
   minimumOrder: true,
   estimatedMinutesMin: true,
   estimatedMinutesMax: true,
-} satisfies Prisma.DeliveryZoneSelect;
+} satisfies PrismaTypes.DeliveryZoneSelect;
 
-type DeliveryZoneRecord = Prisma.DeliveryZoneGetPayload<{
+type DeliveryZoneRecord = PrismaTypes.DeliveryZoneGetPayload<{
   select: typeof deliveryZoneSelect;
 }>;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { OrderStatus } from "@/app/generated/prisma";
+import type { OrderStatus } from "@/lib/prisma-client";
 import { Button } from "@/components/ui/button";
 import { orderStatusLabels, orderStatusOptions } from "@/lib/orders/order-format";
 import type { ApiErrorResponse, ApiSuccess } from "@/lib/products/product-types";

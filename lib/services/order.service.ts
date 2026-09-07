@@ -6,7 +6,8 @@ import {
   Prisma,
   ProductStatus,
   StockMovementType,
-} from "@/app/generated/prisma";
+} from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { ApiError } from "@/lib/api-response";
 import type { DebugTracker } from "@/lib/debug/server-debug";
 import { decimalToString, toPrismaDecimal } from "@/lib/decimal";
@@ -75,7 +76,7 @@ const orderSelect = {
       createdAt: "asc",
     },
   },
-} satisfies Prisma.OrderSelect;
+} satisfies PrismaTypes.OrderSelect;
 
 const checkoutProductSelect = {
   id: true,
@@ -92,7 +93,7 @@ const checkoutProductSelect = {
   trackInventory: true,
   allowBackorder: true,
   status: true,
-} satisfies Prisma.ProductSelect;
+} satisfies PrismaTypes.ProductSelect;
 
 const orderListSelect = {
   id: true,
@@ -113,7 +114,7 @@ const orderListSelect = {
       items: true,
     },
   },
-} satisfies Prisma.OrderSelect;
+} satisfies PrismaTypes.OrderSelect;
 
 const orderDetailSelect = {
   ...orderSelect,
@@ -129,14 +130,14 @@ const orderDetailSelect = {
       createdAt: "asc",
     },
   },
-} satisfies Prisma.OrderSelect;
+} satisfies PrismaTypes.OrderSelect;
 
-type OrderRecord = Prisma.OrderGetPayload<{ select: typeof orderSelect }>;
-type OrderListRecord = Prisma.OrderGetPayload<{ select: typeof orderListSelect }>;
-type OrderDetailRecord = Prisma.OrderGetPayload<{
+type OrderRecord = PrismaTypes.OrderGetPayload<{ select: typeof orderSelect }>;
+type OrderListRecord = PrismaTypes.OrderGetPayload<{ select: typeof orderListSelect }>;
+type OrderDetailRecord = PrismaTypes.OrderGetPayload<{
   select: typeof orderDetailSelect;
 }>;
-type CheckoutProduct = Prisma.ProductGetPayload<{
+type CheckoutProduct = PrismaTypes.ProductGetPayload<{
   select: typeof checkoutProductSelect;
 }>;
 
@@ -532,7 +533,7 @@ export async function listOrders(query: OrderQueryInput): Promise<OrderListResul
   const summaryWhere = buildOrderWhere({ ...query, status: undefined });
   const orderBy = {
     [query.sortBy]: query.order,
-  } as Prisma.OrderOrderByWithRelationInput;
+  } as PrismaTypes.OrderOrderByWithRelationInput;
 
   const [orders, total, totalOrders, statusGroups] = await prisma.$transaction([
     prisma.order.findMany({
@@ -682,7 +683,7 @@ function assertUniqueProductIds(productIds: string[]) {
 }
 
 function buildOrderWhere(query: OrderQueryInput) {
-  const andFilters: Prisma.OrderWhereInput[] = [];
+  const andFilters: PrismaTypes.OrderWhereInput[] = [];
 
   if (query.status === "active") {
     andFilters.push({ status: { in: [...operationalOrderStatuses] } });
@@ -717,7 +718,7 @@ function buildOrderWhere(query: OrderQueryInput) {
         { secondaryPhone: { contains: search } },
         { address: { contains: search, mode: "insensitive" } },
         { deliveryZoneName: { contains: search, mode: "insensitive" } },
-      ].filter(Boolean) as Prisma.OrderWhereInput[],
+      ].filter(Boolean) as PrismaTypes.OrderWhereInput[],
     });
   }
 
@@ -779,7 +780,7 @@ function assertStatusTransition(fromStatus: OrderStatus, toStatus: OrderStatus) 
   );
 }
 
-function buildStatusUpdateData(status: OrderStatus): Prisma.OrderUpdateManyMutationInput {
+function buildStatusUpdateData(status: OrderStatus): PrismaTypes.OrderUpdateManyMutationInput {
   return {
     status,
     ...(status === OrderStatus.CONFIRMED ? { confirmedAt: new Date() } : {}),
@@ -789,7 +790,7 @@ function buildStatusUpdateData(status: OrderStatus): Prisma.OrderUpdateManyMutat
 }
 
 async function cancelOrderInsideTransaction(
-  tx: Prisma.TransactionClient,
+  tx: PrismaTypes.TransactionClient,
   order: {
     id: string;
     status: OrderStatus;
@@ -922,7 +923,7 @@ function serializeOrderStatusHistory(
   };
 }
 
-function validateCheckoutProduct(product: CheckoutProduct, quantity: Prisma.Decimal) {
+function validateCheckoutProduct(product: CheckoutProduct, quantity: PrismaTypes.Decimal) {
   if (product.status !== ProductStatus.ACTIVE) {
     throw new ApiError(
       `${product.name} غير متاح للطلب حالياً.`,
@@ -989,8 +990,8 @@ function validateCheckoutProduct(product: CheckoutProduct, quantity: Prisma.Deci
 }
 
 function validateCoupon(
-  coupon: Prisma.CouponGetPayload<Record<string, never>>,
-  subtotal: Prisma.Decimal,
+  coupon: PrismaTypes.CouponGetPayload<Record<string, never>>,
+  subtotal: PrismaTypes.Decimal,
 ) {
   const now = new Date();
 
@@ -1029,8 +1030,8 @@ function validateCoupon(
 }
 
 function calculateCouponDiscount(
-  coupon: Prisma.CouponGetPayload<Record<string, never>>,
-  subtotal: Prisma.Decimal,
+  coupon: PrismaTypes.CouponGetPayload<Record<string, never>>,
+  subtotal: PrismaTypes.Decimal,
 ) {
   const value = coupon.value ?? zeroMoney();
   let discount =
@@ -1075,6 +1076,6 @@ function zeroMoney() {
   return new Prisma.Decimal(0);
 }
 
-function toMoney(value: Prisma.Decimal | number | string) {
+function toMoney(value: PrismaTypes.Decimal | number | string) {
   return new Prisma.Decimal(value).toDecimalPlaces(2);
 }

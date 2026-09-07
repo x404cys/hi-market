@@ -1,4 +1,4 @@
-import { UserRole } from "@/app/generated/prisma";
+import { UserRole } from "@/lib/prisma-client";
 import { z } from "zod";
 
 const requiredString = z.string().trim().min(1, "Required");

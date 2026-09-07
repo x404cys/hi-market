@@ -1,4 +1,4 @@
-import type { UserRole } from "@/app/generated/prisma";
+import type { UserRole } from "@/lib/prisma-client";
 
 export type AdminUserDto = {
   id: string;

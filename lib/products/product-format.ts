@@ -1,4 +1,4 @@
-import type { ProductStatus, ProductUnit } from "@/app/generated/prisma";
+import type { ProductStatus, ProductUnit } from "@/lib/prisma-client";
 
 export function formatIqd(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === "") return "0 د.ع";

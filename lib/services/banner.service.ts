@@ -1,4 +1,5 @@
-import { BannerPosition, Prisma } from "@/app/generated/prisma";
+import { BannerPosition } from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { ApiError } from "@/lib/api-response";
 import type {
   BannerDisplayStatus,
@@ -31,9 +32,9 @@ const bannerSelect = {
   endsAt: true,
   createdAt: true,
   updatedAt: true,
-} satisfies Prisma.BannerSelect;
+} satisfies PrismaTypes.BannerSelect;
 
-type BannerRecord = Prisma.BannerGetPayload<{
+type BannerRecord = PrismaTypes.BannerGetPayload<{
   select: typeof bannerSelect;
 }>;
 
@@ -141,8 +142,8 @@ export async function deleteBanner(id: string) {
   return serializeBanner(banner);
 }
 
-function buildBannerUpdateData(input: UpdateBannerInput): Prisma.BannerUpdateInput {
-  const data: Prisma.BannerUpdateInput = {};
+function buildBannerUpdateData(input: UpdateBannerInput): PrismaTypes.BannerUpdateInput {
+  const data: PrismaTypes.BannerUpdateInput = {};
 
   if (input.title !== undefined) data.title = input.title;
   if (input.description !== undefined) data.description = input.description;

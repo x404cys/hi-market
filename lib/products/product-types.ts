@@ -1,4 +1,4 @@
-import type { ProductStatus, ProductUnit } from "@/app/generated/prisma";
+import type { ProductStatus, ProductUnit } from "@/lib/prisma-client";
 
 export type ApiSuccess<T> = {
   success: true;

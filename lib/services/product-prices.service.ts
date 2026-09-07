@@ -1,12 +1,13 @@
 import prisma from "@/lib/prisma";
-import { Prisma } from "@/app/generated/prisma";
+import { Prisma } from "@/lib/prisma-client";
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
 import { ApiError } from "@/lib/api-response";
 import type { z } from "zod";
 import type { bulkPricesSchema, priceQuerySchema } from "@/lib/validations/product-prices";
 
 export async function listProductPrices(query: z.infer<typeof priceQuerySchema>) {
   const limit = 50;
-  const where: Prisma.ProductWhereInput = {
+  const where: PrismaTypes.ProductWhereInput = {
     status: { not: "ARCHIVED" },
     ...(query.search ? { name: { contains: query.search, mode: "insensitive" } } : {}),
     ...(query.categoryId ? { categoryId: query.categoryId } : {}),

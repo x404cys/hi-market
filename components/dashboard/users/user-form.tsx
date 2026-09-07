@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserRole } from "@/app/generated/prisma";
+import type { UserRole } from "@/lib/prisma-client";
 import { Button } from "@/components/ui/button";
 import { userRoleLabels } from "@/lib/auth/role-labels";
 import type { AuthenticatedAdmin } from "@/lib/auth/session-types";

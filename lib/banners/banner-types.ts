@@ -1,4 +1,4 @@
-import type { BannerPosition } from "@/app/generated/prisma";
+import type { BannerPosition } from "@/lib/prisma-client";
 
 export type BannerDto = {
   id: string;

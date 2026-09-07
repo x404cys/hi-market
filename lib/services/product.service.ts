@@ -19,6 +19,7 @@ import type {
   ProductImageInput,
   ProductQueryInput,
   UpdateProductInput,
+  BulkCategoryInput,
 } from "@/lib/validations/product";
 import type {
   CursorPaginatedProducts,
@@ -376,6 +377,71 @@ export async function archiveProduct(productId: string) {
   });
 
   return serializeProduct(archived);
+}
+
+export async function updateProductCategories(input: BulkCategoryInput) {
+  return prisma.$transaction(async (tx) => {
+    const category = await tx.category.findUnique({
+      where: { id: input.categoryId },
+      select: { id: true, name: true, slug: true },
+    });
+
+    if (!category) {
+      throw new ApiError("التصنيف المحدد غير موجود.", 404, {
+        categoryId: ["Category not found"],
+      });
+    }
+
+    const products = await tx.product.findMany({
+      where: { id: { in: input.productIds } },
+      select: {
+        id: true,
+        slug: true,
+        category: {
+          select: {
+            slug: true,
+          },
+        },
+      },
+    });
+    const foundIds = new Set(products.map((product) => product.id));
+    const missingIds = input.productIds.filter((id) => !foundIds.has(id));
+
+    if (missingIds.length > 0) {
+      throw new ApiError("بعض المنتجات لم تعد موجودة. لم يتم نقل أي منتج.", 409, {
+        missingIds,
+      });
+    }
+
+    const result = await tx.product.updateMany({
+      where: { id: { in: input.productIds } },
+      data: { categoryId: category.id },
+    });
+
+    if (result.count !== input.productIds.length) {
+      throw new ApiError("تعذر تأكيد نقل كل المنتجات المحددة. لم يتم تأكيد العملية.", 409, {
+        expectedCount: input.productIds.length,
+        updatedCount: result.count,
+      });
+    }
+
+    return {
+      updatedCount: result.count,
+      category: {
+        id: category.id,
+        name: category.name,
+      },
+      paths: [
+        ...new Set([
+          ...products.flatMap((product) => [
+            `/products/${product.slug}`,
+            `/categories/${product.category.slug}`,
+          ]),
+          `/categories/${category.slug}`,
+        ]),
+      ],
+    };
+  });
 }
 
 export async function getProduct(productId: string) {

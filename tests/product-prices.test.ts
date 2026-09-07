@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { calculatePrice, samePrice, validPrice } from "../lib/products/price-editor";
+import { bulkCategorySchema } from "../lib/validations/product";
 import { bulkPricesSchema } from "../lib/validations/product-prices";
 import { hasPermission } from "../lib/auth/permissions";
 
@@ -32,4 +33,25 @@ test("staff cannot update prices; managers and owners can", () => {
   assert.equal(hasPermission("STAFF", "products.update"), false);
   assert.equal(hasPermission("MANAGER", "products.update"), true);
   assert.equal(hasPermission("OWNER", "products.update"), true);
+});
+
+test("bulk category validation deduplicates IDs and rejects unsafe payloads", () => {
+  const id = "00000000-0000-4000-8000-000000000001";
+  const secondId = "00000000-0000-4000-8000-000000000002";
+  const categoryId = "00000000-0000-4000-8000-000000000003";
+
+  assert.deepEqual(
+    bulkCategorySchema.parse({ productIds: [id, id, secondId], categoryId }).productIds,
+    [id, secondId],
+  );
+
+  for (const payload of [
+    { productIds: [], categoryId },
+    { productIds: ["not-a-uuid"], categoryId },
+    { productIds: [id], categoryId: "not-a-uuid" },
+    { productIds: [id], categoryId, price: "1000" },
+    { productIds: Array.from({ length: 201 }, () => id), categoryId },
+  ]) {
+    assert.equal(bulkCategorySchema.safeParse(payload).success, false);
+  }
 });

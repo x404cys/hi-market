@@ -3,6 +3,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   formatIqd,
   formatQuantity,
@@ -26,6 +35,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  FolderInput,
+  Loader2,
   MoreHorizontal,
   PackagePlus,
   Pencil,
@@ -80,6 +91,7 @@ const emptySummary: ProductSummary = {
   lowStockProducts: 0,
   outOfStockProducts: 0,
 };
+const emptyProducts: ProductDto[] = [];
 
 export function ProductManagementClient({
   canCreate,
@@ -106,6 +118,15 @@ export function ProductManagementClient({
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<ProductDto | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [categorySearchValue, setCategorySearchValue] = useState("");
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkSuccess, setBulkSuccess] = useState<string | null>(null);
+  const [productsReloadKey, setProductsReloadKey] = useState(0);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const page = Number(searchParams.get("page") ?? "1");
@@ -205,7 +226,7 @@ export function ProductManagementClient({
     return () => {
       isActive = false;
     };
-  }, [queryString, stockStatus]);
+  }, [queryString, stockStatus, productsReloadKey]);
 
   const activeFilters = useMemo(() => {
     const filters: { key: string; label: string }[] = [];
@@ -223,14 +244,31 @@ export function ProductManagementClient({
     return filters;
   }, [brandId, catalog.brands, catalog.categories, categoryId, search, status, stockStatus]);
 
-  const products = productsState?.products ?? [];
+  const products = productsState?.products ?? emptyProducts;
   const pagination = productsState?.pagination;
   const summary = productsState?.summary ?? emptySummary;
   const hasFilters = activeFilters.length > 0;
   const isEmptyDatabase = !isLoading && !error && !hasFilters && summary.totalProducts === 0;
   const hasNoResults = !isLoading && !error && hasFilters && products.length === 0;
+  const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
+  const selectedCount = selectedProductIds.size;
+  const selectedCategory = catalog.categories.find((category) => category.id === selectedCategoryId);
+  const currentFilterCategory = catalog.categories.find((category) => category.id === categoryId);
+  const areAllVisibleSelected =
+    visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.has(id));
+  const areSomeVisibleSelected = visibleProductIds.some((id) => selectedProductIds.has(id));
+  const filteredCategories = useMemo(() => {
+    const normalizedSearch = categorySearchValue.trim().toLocaleLowerCase("ar-IQ");
+
+    if (!normalizedSearch) return catalog.categories;
+
+    return catalog.categories.filter((category) =>
+      category.name.toLocaleLowerCase("ar-IQ").includes(normalizedSearch),
+    );
+  }, [catalog.categories, categorySearchValue]);
 
   function updateParam(key: string, value: string) {
+    clearSelection();
     const params = new URLSearchParams(searchParams.toString());
 
     if (value) {
@@ -247,6 +285,7 @@ export function ProductManagementClient({
   }
 
   function updateSort(value: string) {
+    clearSelection();
     const [nextSortBy, nextOrder] = value.split(":");
     const params = new URLSearchParams(searchParams.toString());
     params.set("sortBy", nextSortBy);
@@ -268,6 +307,7 @@ export function ProductManagementClient({
   }
 
   function clearFilter(key: string) {
+    clearSelection();
     const params = new URLSearchParams(searchParams.toString());
     params.delete(key);
     params.set("page", "1");
@@ -276,6 +316,7 @@ export function ProductManagementClient({
   }
 
   function clearFilters() {
+    clearSelection();
     setSearchValue("");
     router.push(pathname);
   }
@@ -305,6 +346,99 @@ export function ProductManagementClient({
       setError("تعذر الاتصال بواجهة المنتجات.");
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  function toggleProductSelection(productId: string, checked: boolean) {
+    setBulkSuccess(null);
+    setSelectedProductIds((current) => {
+      const next = new Set(current);
+
+      if (checked) {
+        next.add(productId);
+      } else {
+        next.delete(productId);
+      }
+
+      if (next.size === 0) {
+        setIsSelectionMode(false);
+        setIsCategorySheetOpen(false);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleVisibleSelection(checked: boolean) {
+    setBulkSuccess(null);
+    setSelectedProductIds((current) => {
+      if (!checked) return new Set();
+
+      const next = new Set(current);
+      for (const id of visibleProductIds) next.add(id);
+
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedProductIds(new Set());
+    setIsSelectionMode(false);
+    setIsCategorySheetOpen(false);
+    setSelectedCategoryId("");
+    setCategorySearchValue("");
+    setBulkError(null);
+  }
+
+  function openBulkCategorySheet() {
+    setBulkError(null);
+    setSelectedCategoryId("");
+    setCategorySearchValue("");
+    setIsCategorySheetOpen(true);
+  }
+
+  async function confirmBulkCategoryChange() {
+    if (selectedCount === 0 || !selectedCategoryId || isBulkUpdating) return;
+
+    setIsBulkUpdating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch("/api/products/bulk-category", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productIds: Array.from(selectedProductIds),
+          categoryId: selectedCategoryId,
+        }),
+      });
+      const json = (await response.json()) as
+        | ApiSuccess<{
+            updatedCount: number;
+            category: {
+              id: string;
+              name: string;
+            };
+          }>
+        | ApiErrorResponse;
+
+      if (!json.success) {
+        setBulkError(translateBulkCategoryError(json.message));
+        return;
+      }
+
+      setBulkSuccess(
+        `تم نقل ${json.data.updatedCount.toLocaleString("ar-IQ")} منتج إلى تصنيف ${json.data.category.name}`,
+      );
+      clearSelection();
+      setProductsReloadKey((value) => value + 1);
+      router.refresh();
+    } catch {
+      setBulkError("تعذر الاتصال بواجهة المنتجات. تحقق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setIsBulkUpdating(false);
     }
   }
 
@@ -444,6 +578,32 @@ export function ProductManagementClient({
           </CardContent>
         </Card>
 
+        {bulkSuccess && (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {bulkSuccess}
+          </p>
+        )}
+
+        {canUpdate && products.length > 0 && (
+          <div className="flex justify-end lg:hidden">
+            <Button
+              type="button"
+              variant={isSelectionMode ? "secondary" : "outline"}
+              className="h-10 rounded-md px-4"
+              onClick={() => {
+                setBulkSuccess(null);
+                if (isSelectionMode) {
+                  clearSelection();
+                } else {
+                  setIsSelectionMode(true);
+                }
+              }}
+            >
+              {isSelectionMode ? "إنهاء التحديد" : "تحديد"}
+            </Button>
+          </div>
+        )}
+
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {isLoading && <ProductsSkeleton />}
 
@@ -480,6 +640,15 @@ export function ProductManagementClient({
                 <table className="w-full border-collapse text-sm">
                   <thead className="bg-slate-50 text-xs text-slate-500">
                     <tr>
+                      {canUpdate && (
+                        <th className="w-12 px-4 py-3">
+                          <Checkbox
+                            aria-label="تحديد المنتجات الظاهرة"
+                            checked={areAllVisibleSelected ? true : areSomeVisibleSelected ? "indeterminate" : false}
+                            onCheckedChange={(checked) => toggleVisibleSelection(checked === true)}
+                          />
+                        </th>
+                      )}
                       <TableHeader>المنتج</TableHeader>
                       <TableHeader>SKU / Barcode</TableHeader>
                       <TableHeader>التصنيف</TableHeader>
@@ -493,6 +662,15 @@ export function ProductManagementClient({
                   <tbody className="divide-y divide-slate-100">
                     {products.map((product) => (
                       <tr key={product.id} className="hover:bg-slate-50/60">
+                        {canUpdate && (
+                          <td className="px-4 py-3">
+                            <Checkbox
+                              aria-label={`تحديد ${product.name}`}
+                              checked={selectedProductIds.has(product.id)}
+                              onCheckedChange={(checked) => toggleProductSelection(product.id, checked === true)}
+                            />
+                          </td>
+                        )}
                         <td className="min-w-64 px-4 py-3">
                           <ProductIdentity product={product} />
                         </td>
@@ -539,6 +717,9 @@ export function ProductManagementClient({
                     setProductToDelete={setProductToDelete}
                     canUpdate={canUpdate}
                     canDelete={canDelete}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedProductIds.has(product.id)}
+                    onSelectionChange={(checked) => toggleProductSelection(product.id, checked)}
                   />
                 ))}
               </div>
@@ -556,6 +737,157 @@ export function ProductManagementClient({
           )}
         </section>
       </div>
+
+      {canUpdate && selectedCount > 0 && (
+        <div className="fixed inset-x-4 bottom-5 z-40 hidden justify-center lg:flex">
+          <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-xl">
+            <span className="font-medium text-slate-950">
+              تم تحديد {selectedCount.toLocaleString("ar-IQ")} منتج
+            </span>
+            <Button
+              type="button"
+              className="h-8 gap-2 rounded-md px-3"
+              onClick={openBulkCategorySheet}
+            >
+              <FolderInput className="size-4" />
+              تغيير التصنيف
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 rounded-md px-3"
+              onClick={clearSelection}
+            >
+              إلغاء التحديد
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {canUpdate && isSelectionMode && selectedCount > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-slate-950">
+              {selectedCount.toLocaleString("ar-IQ")} منتج محدد
+            </span>
+            <Button
+              type="button"
+              className="h-11 gap-2 rounded-md px-4"
+              onClick={openBulkCategorySheet}
+            >
+              <FolderInput className="size-4" />
+              تغيير التصنيف
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Sheet
+        open={isCategorySheetOpen}
+        onOpenChange={(open) => {
+          if (!isBulkUpdating) setIsCategorySheetOpen(open);
+        }}
+      >
+        <SheetContent dir="rtl" side="bottom" className="mx-auto max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>تغيير تصنيف المنتجات</SheetTitle>
+            <SheetDescription>
+              سيتم نقل {selectedCount.toLocaleString("ar-IQ")} منتج إلى التصنيف المحدد.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4 px-5 pb-2">
+            {currentFilterCategory && (
+              <div className="grid gap-2 rounded-md bg-slate-50 p-3 text-sm text-slate-700 sm:grid-cols-2">
+                <p>
+                  نقل من: <span className="font-medium text-slate-950">{currentFilterCategory.name}</span>
+                </p>
+                <p>
+                  نقل إلى:{" "}
+                  <span className="font-medium text-slate-950">
+                    {selectedCategory?.name ?? "اختر التصنيف"}
+                  </span>
+                </p>
+              </div>
+            )}
+
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-slate-500">التصنيف الجديد</span>
+              <Search className="pointer-events-none absolute mt-3.5 mr-3 size-4 text-slate-400" />
+              <input
+                value={categorySearchValue}
+                onChange={(event) => setCategorySearchValue(event.target.value)}
+                className="h-11 w-full rounded-md border border-slate-200 bg-white pr-9 pl-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                placeholder="ابحث عن تصنيف..."
+                autoComplete="off"
+              />
+            </label>
+
+            <div className="max-h-72 overflow-y-auto rounded-md border border-slate-200">
+              {filteredCategories.length > 0 ? (
+                <div className="divide-y divide-slate-100">
+                  {filteredCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-right text-sm transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                      onClick={() => setSelectedCategoryId(category.id)}
+                    >
+                      <span className="font-medium text-slate-800">{category.name}</span>
+                      <span
+                        className={`flex size-5 items-center justify-center rounded-full border ${
+                          selectedCategoryId === category.id
+                            ? "border-[var(--store-primary)] bg-[var(--store-primary)] text-white"
+                            : "border-slate-300 text-transparent"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-3 py-8 text-center text-sm text-slate-500">لا توجد تصنيفات مطابقة.</p>
+              )}
+            </div>
+
+            <div className="min-h-12 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+              التصنيف الوجهة:{" "}
+              <span className="font-semibold text-slate-950">
+                {selectedCategory?.name ?? "لم يتم اختيار تصنيف بعد"}
+              </span>
+            </div>
+
+            {bulkError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {bulkError}
+              </p>
+            )}
+          </div>
+
+          <SheetFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-md px-4"
+              onClick={() => setIsCategorySheetOpen(false)}
+              disabled={isBulkUpdating}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              className="h-10 gap-2 rounded-md px-4"
+              onClick={confirmBulkCategoryChange}
+              disabled={!selectedCategoryId || selectedCount === 0 || isBulkUpdating}
+            >
+              {isBulkUpdating && <Loader2 className="size-4 animate-spin" />}
+              {isBulkUpdating ? "جاري النقل..." : "نقل المنتجات"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {productToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
@@ -809,6 +1141,9 @@ function MobileProductRow({
   setProductToDelete,
   canUpdate,
   canDelete,
+  isSelectionMode,
+  isSelected,
+  onSelectionChange,
 }: {
   product: ProductDto;
   openMenuId: string | null;
@@ -816,19 +1151,41 @@ function MobileProductRow({
   setProductToDelete: (product: ProductDto) => void;
   canUpdate: boolean;
   canDelete: boolean;
+  isSelectionMode: boolean;
+  isSelected: boolean;
+  onSelectionChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="p-4">
+    <div
+      className={`p-4 ${isSelectionMode ? "cursor-pointer" : ""} ${isSelected ? "bg-slate-50" : ""}`}
+      onClick={() => {
+        if (isSelectionMode && canUpdate) onSelectionChange(!isSelected);
+      }}
+    >
       <div className="flex items-start justify-between gap-3">
-        <ProductIdentity product={product} />
-        <RowActions
-          product={product}
-          openMenuId={openMenuId}
-          setOpenMenuId={setOpenMenuId}
-          setProductToDelete={setProductToDelete}
-          canUpdate={canUpdate}
-          canDelete={canDelete}
-        />
+        <div className="flex min-w-0 items-start gap-3">
+          {isSelectionMode && canUpdate && (
+            <div onClick={(event) => event.stopPropagation()}>
+              <Checkbox
+                className="mt-2 size-6"
+                aria-label={`تحديد ${product.name}`}
+                checked={isSelected}
+                onCheckedChange={(checked) => onSelectionChange(checked === true)}
+              />
+            </div>
+          )}
+          <ProductIdentity product={product} />
+        </div>
+        {!isSelectionMode && (
+          <RowActions
+            product={product}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            setProductToDelete={setProductToDelete}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+          />
+        )}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -996,4 +1353,24 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("ar-IQ", {
     dateStyle: "medium",
   }).format(new Date(value));
+}
+
+function translateBulkCategoryError(message: string) {
+  if (message === "Validation failed") {
+    return "تحقق من المنتجات والتصنيف المحدد ثم حاول مرة أخرى.";
+  }
+
+  if (message === "Forbidden") {
+    return "لا تملك صلاحية تغيير تصنيف المنتجات.";
+  }
+
+  if (message === "Unauthenticated") {
+    return "انتهت الجلسة. سجل الدخول ثم حاول مرة أخرى.";
+  }
+
+  if (message === "Internal server error") {
+    return "حدث خطأ غير متوقع أثناء نقل المنتجات.";
+  }
+
+  return message || "تعذر نقل المنتجات. حاول مرة أخرى.";
 }

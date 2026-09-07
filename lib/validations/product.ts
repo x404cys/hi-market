@@ -24,6 +24,7 @@ export const productStatusValues = [
 const requiredString = z.string().trim().min(1, "Required");
 const optionalNullableString = requiredString.nullable().optional();
 const idSchema = z.string().trim().uuid("Invalid id");
+const MAX_BULK_CATEGORY_PRODUCTS = 200;
 const productImageUrlSchema = requiredString.refine(
   (url) => !getR2PublicBaseUrl() || isOwnedR2PublicUrl(url),
   "Product image must be uploaded to R2",
@@ -144,7 +145,23 @@ export const productQuerySchema = z
   })
   .strict();
 
+export const bulkCategorySchema = z
+  .object({
+    productIds: z
+      .array(idSchema)
+      .min(1, "At least one product is required")
+      .max(MAX_BULK_CATEGORY_PRODUCTS, `Cannot update more than ${MAX_BULK_CATEGORY_PRODUCTS} products at once`)
+      .transform((ids) => Array.from(new Set(ids))),
+    categoryId: idSchema,
+  })
+  .strict()
+  .refine((value) => value.productIds.length > 0, {
+    message: "At least one product is required",
+    path: ["productIds"],
+  });
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ProductQueryInput = z.infer<typeof productQuerySchema>;
 export type ProductImageInput = z.infer<typeof productImageInputSchema>;
+export type BulkCategoryInput = z.infer<typeof bulkCategorySchema>;

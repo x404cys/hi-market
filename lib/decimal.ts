@@ -1,5 +1,7 @@
 import { Prisma } from "@/lib/prisma-client";
-import type { Prisma as PrismaTypes } from "@/app/generated/prisma/edge";
+
+import type { Prisma as PrismaTypes } from "@/app/generated/prisma/client";
+
 
 export function toPrismaDecimal(value: string) {
   return new Prisma.Decimal(value);

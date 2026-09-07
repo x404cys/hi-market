@@ -10,7 +10,7 @@ import {
   ProductUnit as GeneratedProductUnit,
   StockMovementType as GeneratedStockMovementType,
   UserRole as GeneratedUserRole,
-} from "@/app/generated/prisma/edge";
+} from "@/app/generated/prisma/client";
 
 export const BannerPosition = GeneratedBannerPosition;
 export const CouponType = GeneratedCouponType;
@@ -26,15 +26,30 @@ export const UserRole = GeneratedUserRole;
 
 export type BannerPosition =
   (typeof BannerPosition)[keyof typeof BannerPosition];
-export type CouponType = (typeof CouponType)[keyof typeof CouponType];
-export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
-export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
-export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus];
-export type ProductUnit = (typeof ProductUnit)[keyof typeof ProductUnit];
+
+export type CouponType =
+  (typeof CouponType)[keyof typeof CouponType];
+
+export type OrderStatus =
+  (typeof OrderStatus)[keyof typeof OrderStatus];
+
+export type PaymentMethod =
+  (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export type PaymentStatus =
+  (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+export type ProductStatus =
+  (typeof ProductStatus)[keyof typeof ProductStatus];
+
+export type ProductUnit =
+  (typeof ProductUnit)[keyof typeof ProductUnit];
+
 export type StockMovementType =
   (typeof StockMovementType)[keyof typeof StockMovementType];
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export type UserRole =
+  (typeof UserRole)[keyof typeof UserRole];
 
 export type {
   Banner,
@@ -44,4 +59,4 @@ export type {
   Order,
   Product,
   User,
-} from "@/app/generated/prisma/edge";
+} from "@/app/generated/prisma/client";

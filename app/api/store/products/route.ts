@@ -52,6 +52,10 @@ const storeProductsQuerySchema = z
       .enum(["true", "false"])
       .optional()
       .transform((value) => value === "true"),
+    onOffer: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((value) => value === "true"),
     sort: z.enum(storeProductSortValues).default("newest"),
     ids: z
       .string()
@@ -85,6 +89,7 @@ export async function GET(request: NextRequest) {
       minPrice: searchParams.get("minPrice") ?? undefined,
       maxPrice: searchParams.get("maxPrice") ?? undefined,
       inStock: searchParams.get("inStock") ?? undefined,
+      onOffer: searchParams.get("onOffer") ?? undefined,
       sort: searchParams.get("sort") ?? undefined,
       ids: searchParams.get("ids") ?? undefined,
     });
@@ -97,6 +102,7 @@ export async function GET(request: NextRequest) {
       minPrice: query.minPrice,
       maxPrice: query.maxPrice,
       inStock: query.inStock,
+      onOffer: query.onOffer,
       ids: query.ids,
       sort: query.sort as StoreProductSort,
     });

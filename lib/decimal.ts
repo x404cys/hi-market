@@ -10,4 +10,3 @@ export function toPrismaDecimal(value: string) {
 export function decimalToString(value: PrismaTypes.Decimal | null | undefined) {
   return value == null ? null : value.toString();
 }
-//

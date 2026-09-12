@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Home, ShoppingBag } from "lucide-react";
+import { BadgePercent, Heart, Home, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { useFavoritesSummary } from "@/features/favorites/store";
 
 const navItems = [
   { label: "الرئيسية", href: "/", icon: Home },
+  { label: "العروض", href: "/offers", icon: BadgePercent },
   { label: "السلة", href: "/cart", icon: ShoppingBag, cart: true },
   { label: "المفضلة", href: "/favorites", icon: Heart, favorites: true },
 ];
@@ -37,7 +38,7 @@ export function BottomNavigation() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--store-border)] bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 md:hidden"
         aria-label="التنقل الرئيسي"
       >
-        <div className="mx-auto grid max-w-md grid-cols-3">
+        <div className="mx-auto grid max-w-md grid-cols-4">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active =

@@ -146,6 +146,7 @@ export type StoreProductQueryOptions = {
   minPrice?: string;
   maxPrice?: string;
   inStock?: boolean;
+  onOffer?: boolean;
   excludeProductId?: string;
   ids?: string[];
   sort?: StoreProductSort;
@@ -161,6 +162,7 @@ type NormalizedStoreProductQueryOptions = {
   minPrice: string | undefined;
   maxPrice: string | undefined;
   inStock: boolean;
+  onOffer: boolean;
   excludeProductId: string | undefined;
   ids: string[] | undefined;
   sort: StoreProductSort;
@@ -541,6 +543,7 @@ function normalizeStoreProductQueryOptions(
     minPrice: normalizeStorePriceFilter(options.minPrice) ?? undefined,
     maxPrice: normalizeStorePriceFilter(options.maxPrice) ?? undefined,
     inStock: options.inStock === true,
+    onOffer: options.onOffer === true,
     excludeProductId: cleanStoreText(options.excludeProductId),
     ids: ids && ids.length > 0 ? Array.from(new Set(ids)) : undefined,
     sort: options.sort ?? "newest",
@@ -584,6 +587,14 @@ function buildStoreProductWhere(
         { allowBackorder: true },
         { stock: { gt: 0 } },
       ],
+    });
+  }
+  if (options.onOffer) {
+    andFilters.push({
+      comparePrice: {
+        not: null,
+        gt: prisma.product.fields.price,
+      },
     });
   }
   if (options.search) {
